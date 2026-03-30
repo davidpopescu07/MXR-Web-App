@@ -1,25 +1,32 @@
-import logo from './logo.svg';
+// React example
+// See https://github.com/katspaugh/wavesurfer-react
 import './App.css';
+import * as React from 'react';
+import Navbar from "./Components/LandingPage/Navbar/Navbar";
+import PlaylistTable from "./Components/PlaylistTable/PlaylistTable";
+import {Routes, Route} from "react-router";
+import LandingPage from "./Components/LandingPage/LandingPage";
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+const App = () => {
+
+    let Component
+    switch(window.location.pathname) {
+        case "/":
+            Component = <LandingPage/>
+            break
+        case "/mixer":
+            Component = <PlaylistTable/>
+            break
+    }
+    return (
+        <div>
+            <Navbar/>
+            <Routes>
+                <Route path="/" element={<LandingPage/>}/>
+                <Route path="/mixer" element={<PlaylistTable/>}/>
+            </Routes>
+        </div>
+    );
 }
 
 export default App;
