@@ -52,7 +52,7 @@ const PlaylistTable = () => {
             console.error("Error reading metadata:", err);
         }
     };
-    return (<div style={{padding: "20px", background: "#111", color: "#fff"}}>
+    return (<div style={{padding: "20px", background: "#f11414", color: "#fff"}}>
             <h2>My Playlist</h2>
 
             {/* Add Track */}
