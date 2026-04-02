@@ -3,19 +3,21 @@
 import './App.css';
 import * as React from 'react';
 import Navbar from "./Components/LandingPage/Navbar/Navbar";
-import PlaylistTable from "./Components/PlaylistTable/PlaylistTable";
 import {Routes, Route} from "react-router";
 import LandingPage from "./Components/LandingPage/LandingPage";
+import MixerPage from "./Components/MixerPage/MixerPage";
+import Login from "./Components/AuthenticationPages/LoginPage/Login";
+import Signup from "./Components/AuthenticationPages/SignupPage/Signup";
 
 const App = () => {
 
     let Component
-    switch(window.location.pathname) {
+    switch (window.location.pathname) {
         case "/":
             Component = <LandingPage/>
             break
         case "/mixer":
-            Component = <PlaylistTable/>
+            Component = <MixerPage/>
             break
     }
     return (
@@ -23,7 +25,9 @@ const App = () => {
             <Navbar/>
             <Routes>
                 <Route path="/" element={<LandingPage/>}/>
-                <Route path="/mixer" element={<PlaylistTable/>}/>
+                <Route path="/mixer" element={<MixerPage/>}/>
+                <Route path="/login" element={<Login/>}/>
+                <Route path="/signup" element={<Signup/>}/>
             </Routes>
         </div>
     );
