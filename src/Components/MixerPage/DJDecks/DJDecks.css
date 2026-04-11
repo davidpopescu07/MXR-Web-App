@@ -21,6 +21,7 @@
     height: 70px;
     position: relative;
     margin-top: 10px;
+    overflow: hidden;
 }
 
 .waveform-panel.left  { border-right: 10px solid #101010; }
@@ -461,3 +462,4 @@
     border-radius: 1px;
     box-shadow: 0 2px 6px #000;
 }
+

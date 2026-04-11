@@ -12,12 +12,12 @@ const Login = () => {
             <div className="LoginUserInput">
                 <div className="InputField">
                     <label htmlFor="email">Email</label>
-                    <input type="text" name="uname" required/>
+                    <input id="email" type="text" name="uname" required/>
                 </div>
 
                 <div className="InputField">
                     <label htmlFor="psw">Password</label>
-                    <input type="password" name="psw" required/>
+                    <input id="psw" type="password" name="psw" required/>
                 </div>
                 <button type="submit" id="loginButton">Log in</button>
             </div>

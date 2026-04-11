@@ -12,17 +12,17 @@ const Signup = () => {
             <div className="SignupUserInput">
                 <div className="InputField">
                     <label htmlFor="email">Email</label>
-                    <input type="text" name="uname" required/>
+                    <input id="email" type="text" name="uname" required/>
                 </div>
 
                 <div className="InputField">
-                    <label htmlFor="email">Confirm Email</label>
-                    <input type="text" name="uname" required/>
+                    <label htmlFor="confirmEmail">Confirm Email</label>
+                    <input id="confirmEmail" type="text" name="uname" required/>
                 </div>
 
                 <div className="InputField">
                     <label htmlFor="psw">Password</label>
-                    <input type="password" name="psw" required/>
+                    <input id="psw" type="password" name="psw" required/>
                 </div>
                 <button type="submit" id="signupBttn">Sign up</button>
             </div>
