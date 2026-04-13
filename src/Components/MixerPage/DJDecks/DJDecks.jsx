@@ -1,4 +1,4 @@
-import React, {useState, useRef, useEffect, useCallback} from "react";
+import React, {useCallback, useEffect, useRef, useState} from "react";
 import WaveSurfer from "wavesurfer.js";
 import RegionsPlugin from "wavesurfer.js/dist/plugins/regions.esm.js";
 import "./DJDecks.css";
@@ -23,7 +23,7 @@ function getAC() {
  */
 const mediaSourceCache = new WeakMap();
 
-function buildEQChain(ws) {
+export function buildEQChain(ws) {
     const mediaEl = ws.getMediaElement?.();
     if (!mediaEl) return null;
 
@@ -303,7 +303,7 @@ function WaveformInner({track, isPlaying, wsRef, regionsRef, onReady}) {
 }
 
 
-function Deck({side, track, isPlaying, onPlay, onBpmChange, wsRef, regionsRef}) {
+export function Deck({side, track, isPlaying, onPlay, onBpmChange, wsRef, regionsRef}) {
     const [dragOver, setDragOver] = useState(false);
     const [syncActive, setSyncActive] = useState(false);
     // loop state: start (number|null), end (number|null), active (bool)
@@ -361,13 +361,12 @@ function Deck({side, track, isPlaying, onPlay, onBpmChange, wsRef, regionsRef}) 
 
         // WaveSurfer v7 RegionsPlugin fires 'region-out' when playback leaves a region.
         // We listen for it and seek back to the region start to create a seamless loop.
-        const unsub = ws.on("timeupdate", (currentTime) => {
+        regionOutUnsubRef.current = ws.on("timeupdate", (currentTime) => {
             // Use the region's live start/end (user may have dragged/resized it)
             if (currentTime >= region.end) {
                 ws.setTime(region.start);
             }
         });
-        regionOutUnsubRef.current = unsub;
 
         // Seek to the loop start so playback enters the region immediately
         ws.setTime(start);
@@ -764,3 +763,4 @@ export default function DJDecks() {
         </div>
     );
 }
+
