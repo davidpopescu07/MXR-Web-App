@@ -116,6 +116,9 @@ export function buildEQChain(ws) {
             low.gain.setTargetAtTime(knobToEQ(v), ac.currentTime, 0.01);
         },
         setCfx,
+        setVolume:(v) => {
+            masterGain.gain.setTargetAtTime(v, ac.currentTime, 0.01);
+        },
         disconnect: () => {
             try {
                 source.disconnect();
@@ -622,14 +625,12 @@ export default function DJDecks() {
         const gainB = Math.cos((1 - crossfader) * (Math.PI / 2));
 
         if (eqChainA.current) {
-            const cfxScale = eqA.cfx * 2;
-            eqChainA.current.setCfx(gainA * cfxScale / 2);
+            eqChainA.current.setCfx(gainA * faderA);
         }
         if (eqChainB.current) {
-            const cfxScale = eqB.cfx * 2;
-            eqChainB.current.setCfx(gainB * cfxScale / 2);
+            eqChainB.current.setCfx(gainB * faderB);
         }
-    }, [crossfader]);
+    }, [crossfader, faderA, faderB]);
 
     const onDeckRootDrop = useCallback((side) => (e) => {
         e.preventDefault();
