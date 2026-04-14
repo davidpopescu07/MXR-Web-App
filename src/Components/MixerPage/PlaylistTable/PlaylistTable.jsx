@@ -10,27 +10,41 @@ import { v4 as uuidv4 } from "uuid";
 window.Buffer = Buffer;
 
 const StarRating = (props) => {
-    const rating = props.rating;
-    const onChange = props.onChange;
-    const [hover, setHover] = useState(0);
+    const currentRating = props.rating;
+    const onRatingChange = props.onChange;
+    const [hoveredStar, setHoveredStar] = useState(0);
+
+    const getStarClassName = (thisStar) => {
+        const isHovered  = thisStar <= hoveredStar;
+        const isSelected = thisStar <= currentRating;
+        const isHighlighted = isHovered || isSelected;
+        return "star " + (isHighlighted ? "active" : "inactive");
+    };
+    const handleStarClick = (clickedStar) => {
+        onRatingChange(clickedStar);
+    };
+    const handleMouseEnter = (enteredStar) => {
+        setHoveredStar(enteredStar);
+    };
+    const handleMouseLeave = () => {
+        setHoveredStar(0);
+    };
+
+    const renderStar = (starNumber) => (
+        <span
+            key={starNumber}
+            className={getStarClassName(starNumber)}
+            onClick={() => handleStarClick(starNumber)}
+            onMouseEnter={() => handleMouseEnter(starNumber)}
+            onMouseLeave={() => handleMouseLeave()}
+        >
+            ★
+        </span>
+    );
 
     return (
         <div className="star-rating">
-            {[1, 2, 3, 4, 5].map((star) => {
-                let className = "star ";
-                className += star <= hover || star <= rating ? "active" : "inactive";
-                return (
-                    <span
-                        key={star}
-                        className={className}
-                        onClick={() => onChange(star)}
-                        onMouseEnter={() => setHover(star)}
-                        onMouseLeave={() => setHover(0)}
-                    >
-            ★
-          </span>
-                );
-            })}
+            {[1, 2, 3, 4, 5].map(renderStar)}
         </div>
     );
 };
@@ -116,10 +130,15 @@ const PlaylistTable = () => {
         const files = Array.from(event.target.files);
         if (!files.length) return;
         const newTracks = (await Promise.all(files.map(processFile))).filter(Boolean);
-        setPlaylists((prev) => ({
-            ...prev,
-            [currentPlaylist]: [...(prev[currentPlaylist] || []), ...newTracks],
-        }));
+        setPlaylists((previousPlaylists) => {
+            const existingTracks     = previousPlaylists[currentPlaylist] || [];
+            const updatedTrackList   = [...existingTracks, ...newTracks];
+
+            return {
+                ...previousPlaylists,           // keep all other playlists untouched
+                [currentPlaylist]: updatedTrackList,  // replace only this playlist
+            };
+        });
         event.target.value = "";
     };
 
