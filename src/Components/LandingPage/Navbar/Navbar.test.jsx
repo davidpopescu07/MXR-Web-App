@@ -28,7 +28,6 @@ describe('Navbar', () =>    {
 
     it('renders all nav links', () => {
         renderNavbar()
-        expect(screen.getByRole('link', {name: 'Statistics'})).toBeInTheDocument()
         expect(screen.getByRole('link', {name: 'Mixer'})).toBeInTheDocument()
         expect(screen.getByRole('link', {name: 'About'})).toBeInTheDocument()
     })
@@ -37,8 +36,6 @@ describe('Navbar', () =>    {
         renderNavbar()
         const mixer = screen.getByRole('link', {name: 'Mixer'})
         expect(mixer).toHaveAttribute('href', '/mixer')
-        const stats = screen.getByRole('link', {name: 'Statistics'})
-        expect(stats).toHaveAttribute('href', '/statistics')
         const about = screen.getByRole('link', {name: 'About'})
         expect(about).toHaveAttribute('href', '/about')
     })

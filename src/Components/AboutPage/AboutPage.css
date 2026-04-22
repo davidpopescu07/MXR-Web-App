@@ -1,0 +1,110 @@
+.about-page {
+    background: #101010;
+    color: #fff;
+    font-family: Roboto, sans-serif;
+    min-height: calc(100vh - 84px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 80px 100px;
+    gap: 48px;
+}
+
+.about-sub {
+    font-size: 24px;
+    font-family: Roboto, sans-serif;
+    font-weight: 300;
+    color: #888;
+    margin: 0;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    max-width: 480px;
+    line-height: 1.6;
+}
+
+.about-features {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid #2a2a2a;
+    width: 100%;
+    max-width: 600px;
+}
+
+.about-feature {
+    border-bottom: 1px solid #2a2a2a;
+    cursor: pointer;
+    padding: 16px 0;
+    transition: background 0.15s;
+}
+
+.about-feature:hover .about-feature-title {
+    color: #fff;
+}
+
+.about-feature-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.about-feature-dash {
+    color: #f5a623;
+    flex-shrink: 0;
+}
+
+.about-feature-title {
+    font-size: 15px;
+    font-weight: 300;
+    color: #ccc;
+    flex: 1;
+    letter-spacing: 0.3px;
+    transition: color 0.15s;
+}
+
+.about-feature--open .about-feature-title {
+    color: #fff;
+}
+
+.about-feature-arrow {
+    font-size: 13px;
+    color: #f5a623;
+    flex-shrink: 0;
+}
+
+.about-feature-detail {
+    margin: 12px 0 4px 28px;
+    font-size: 13px;
+    font-weight: 300;
+    color: #888;
+    line-height: 1.7;
+    max-width: 520px;
+}
+
+.about-btn {
+    display: inline-block;
+    background: white;
+    color: #000;
+    font-family: Roboto, sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 12px 28px;
+    border-radius: 2px;
+    text-decoration: none;
+    transition: background 0.15s;
+}
+
+.about-btn:hover {
+    background: whitesmoke;
+    color: #000;
+}
+
+.about-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4em;
+    width: 50%;
+}

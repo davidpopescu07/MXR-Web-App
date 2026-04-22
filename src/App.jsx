@@ -8,6 +8,7 @@ import LandingPage from "./Components/LandingPage/LandingPage";
 import MixerPage from "./Components/MixerPage/MixerPage";
 import Login from "./Components/AuthenticationPages/LoginPage/Login";
 import Signup from "./Components/AuthenticationPages/SignupPage/Signup";
+import AboutPage from "./Components/AboutPage/AboutPage";
 
 const App = () => {
 
@@ -26,6 +27,7 @@ const App = () => {
             <Routes>
                 <Route path="/" element={<LandingPage/>}/>
                 <Route path="/mixer" element={<MixerPage/>}/>
+                <Route path="/about" element={<AboutPage/>}/>
                 <Route path="/login" element={<Login/>}/>
                 <Route path="/signup" element={<Signup/>}/>
             </Routes>

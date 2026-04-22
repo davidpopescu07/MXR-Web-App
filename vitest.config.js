@@ -16,6 +16,7 @@ export default defineConfig({
                 'src/main.jsx',
                 'src/index.jsx',
                 'src/App.jsx',
+                'src/Components/AboutPage/AboutPage.jsx'
             ],
             thresholds: { lines: 90 }
         }

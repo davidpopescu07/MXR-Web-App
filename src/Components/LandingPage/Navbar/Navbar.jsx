@@ -21,9 +21,9 @@ const Navbar = () => {
                     {/*<Link className="navbar-element" to="/playlists">*/}
                     {/*    Playlists*/}
                     {/*</Link>*/}
-                    <Link className="navbar-element" to="/statistics">
-                        Statistics
-                    </Link>
+                    {/*<Link className="navbar-element" to="/statistics">*/}
+                    {/*    Statistics*/}
+                    {/*</Link>*/}
                     {/*<Link className="navbar-element" to="/samples">*/}
                     {/*    Samples*/}
                     {/*</Link>*/}
