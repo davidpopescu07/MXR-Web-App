@@ -1,8 +1,9 @@
-import React from "react";
+import React, {useEffect} from "react";
 import { useState } from "react";
 import { useRef } from "react";
 import { parseBlob } from "music-metadata-browser";
 import { Buffer } from "buffer";
+import Cookies from 'js-cookie';
 import { analyze } from "web-audio-beat-detector";
 import "./PlaylistTable.css";
 import { v4 as uuidv4 } from "uuid";
@@ -48,8 +49,13 @@ const PlaylistTable = () => {
         ],
     };
 
-    const [playlists, setPlaylists] = useState(initialPlaylists);
-    const [currentPlaylist, setCurrentPlaylist] = useState("CoolPlaylist");
+    const [playlists, setPlaylists] = useState(() => {
+        try {
+            const saved = Cookies.get('mxr-playlists');
+            return saved ? JSON.parse(saved) : initialPlaylists;
+        } catch { return initialPlaylists; }
+    });
+    const [currentPlaylist, setCurrentPlaylist] = useState(Cookies.get('mxr-current-playlist') || 'CoolPlaylist');
     const [showPlaylistDropdown, setShowPlaylistDropdown] = useState(false);
     const [showNewPlaylistInput, setShowNewPlaylistInput] = useState(false);
     const [newPlaylistName, setNewPlaylistName] = useState("");
@@ -60,6 +66,27 @@ const PlaylistTable = () => {
     const fileInputRef = useRef(null);
 
     let tracks = playlists[currentPlaylist] || [];
+
+    useEffect(() => {
+        Cookies.set('mxr-current-playlist', currentPlaylist, { expires: 30 });
+    }, [currentPlaylist]);
+
+    useEffect(() => {
+        const toSave = {};
+        for (const [name, tracks] of Object.entries(playlists)) {
+            toSave[name] = tracks.map(t => ({
+                ...t,
+                audioUrl: null,
+                artwork: null,
+            }));
+        }
+        Cookies.set('mxr-playlists', JSON.stringify(toSave), { expires: 30 });
+    }, [playlists]);
+
+    const switchPlaylist = (name) => {
+        setCurrentPlaylist(name);
+        Cookies.set('currentPlaylist', name, { expires: 30 });
+    };
 
     const getAudioBuffer = async (file) => {
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -154,7 +181,7 @@ const PlaylistTable = () => {
         const name = newPlaylistName.trim();
         if (!name || playlists[name]) return;
         setPlaylists({ ...playlists, [name]: [] });
-        setCurrentPlaylist(name);
+        switchPlaylist(name);
         setNewPlaylistName("");
         setShowNewPlaylistInput(false);
         setShowPlaylistDropdown(false);
@@ -234,7 +261,7 @@ const PlaylistTable = () => {
                                     <div
                                         key={name}
                                         className={`playlist-dropdown-item${name === currentPlaylist ? " active" : ""}`}
-                                        onClick={() => { setCurrentPlaylist(name); setShowPlaylistDropdown(false); setCurrentPage(1); }}
+                                        onClick={() => { switchPlaylist(name); setShowPlaylistDropdown(false); setCurrentPage(1); }}
                                     >
                                         {name}
                                     </div>

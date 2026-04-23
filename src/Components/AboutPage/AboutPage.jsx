@@ -25,7 +25,7 @@ const FEATURES = [
     },
 ];
 
-const About = () => {
+const AboutPage = () => {
     const [openIndex, setOpenIndex] = useState(null);
 
     const toggle = (i) => setOpenIndex(openIndex === i ? null : i);
@@ -64,4 +64,4 @@ const About = () => {
     );
 };
 
-export default About;
+export default AboutPage;
