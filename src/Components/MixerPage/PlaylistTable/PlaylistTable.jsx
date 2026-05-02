@@ -10,6 +10,20 @@ import { v4 as uuidv4 } from "uuid";
 
 window.Buffer = Buffer;
 
+
+const TRACKS_PER_PAGE = 5;
+
+const initialPlaylists = {
+    CoolPlaylist: [
+        { id: "fake-1", title: "Xtal",             artist: "Aphex Twin",  album: "Selected Ambient Works 85-92",   bpm: 115, length: "4:53", rating: 5, artwork: null, audioUrl: null },
+        { id: "fake-2", title: "Conceited",         artist: "Remy Ma",     album: "There's something about Remy",  bpm: 100, length: "3:40", rating: 5, artwork: null, audioUrl: null },
+        { id: "fake-3", title: "Army of me",        artist: "Bjork",       album: "Post",                          bpm: 172, length: "3:45", rating: 5, artwork: null, audioUrl: null },
+        { id: "fake-5", title: "Born Slippy",       artist: "Underworld",  album: "1992-2012",                     bpm: 140, length: "7:36", rating: 5, artwork: null, audioUrl: null },
+        { id: "fake-6", title: "Bohemian Rhapsody", artist: "Queen",       album: "A night at the Opera",          bpm: 72,  length: "5:55", rating: 5, artwork: null, audioUrl: null },
+    ],
+};
+
+
 const StarRating = (props) => {
     const rating = props.rating;
     const onChange = props.onChange;
@@ -27,27 +41,15 @@ const StarRating = (props) => {
                         onClick={() => onChange(star)}
                         onMouseEnter={() => setHover(star)}
                         onMouseLeave={() => setHover(0)}
-                    >
-            ★
-          </span>
+                    >★</span>
                 );
             })}
         </div>
     );
 };
 
-const TRACKS_PER_PAGE = 5;
 
 const PlaylistTable = () => {
-    const initialPlaylists = {
-        CoolPlaylist: [
-            { id: "fake-1", title: "Xtal", artist: "Aphex Twin", album: "Selected Ambient Works 85-92", bpm: 115, length: "4:53", rating: 5, artwork: null, audioUrl: null },
-            { id: "fake-2", title: "Conceited", artist: "Remy Ma", album: "There's something about Remy", bpm: 100, length: "3:40", rating: 5, artwork: null, audioUrl: null },
-            { id: "fake-3", title: "Army of me", artist: "Bjork", album: "Post", bpm: 172, length: "3:45", rating: 5, artwork: null, audioUrl: null },
-            { id: "fake-5", title: "Born Slippy", artist: "Underworld", album: "1992-2012", bpm: 140, length: "7:36", rating: 5, artwork: null, audioUrl: null },
-            { id: "fake-6", title: "Bohemian Rhapsody", artist: "Queen", album: "A night at the Opera", bpm: 72, length: "5:55", rating: 5, artwork: null, audioUrl: null },
-        ],
-    };
 
     const [playlists, setPlaylists] = useState(() => {
         try {
@@ -56,16 +58,14 @@ const PlaylistTable = () => {
         } catch { return initialPlaylists; }
     });
     const [currentPlaylist, setCurrentPlaylist] = useState(Cookies.get('mxr-current-playlist') || 'CoolPlaylist');
+    const [search, setSearch] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [editingId, setEditingId] = useState(null);
+    const [editValues, setEditValues] = useState({});
     const [showPlaylistDropdown, setShowPlaylistDropdown] = useState(false);
     const [showNewPlaylistInput, setShowNewPlaylistInput] = useState(false);
     const [newPlaylistName, setNewPlaylistName] = useState("");
-    const [search, setSearch] = useState("");
-    const [editingId, setEditingId] = useState(null);
-    const [editValues, setEditValues] = useState({});
-    const [currentPage, setCurrentPage] = useState(1);
     const fileInputRef = useRef(null);
-
-    let tracks = playlists[currentPlaylist] || [];
 
     useEffect(() => {
         Cookies.set('mxr-current-playlist', currentPlaylist, { expires: 30 });
@@ -74,11 +74,7 @@ const PlaylistTable = () => {
     useEffect(() => {
         const toSave = {};
         for (const [name, tracks] of Object.entries(playlists)) {
-            toSave[name] = tracks.map(t => ({
-                ...t,
-                audioUrl: null,
-                artwork: null,
-            }));
+            toSave[name] = tracks.map(t => ({...t, audioUrl: null, artwork: null}));
         }
         Cookies.set('mxr-playlists', JSON.stringify(toSave), { expires: 30 });
     }, [playlists]);
@@ -86,6 +82,17 @@ const PlaylistTable = () => {
     const switchPlaylist = (name) => {
         setCurrentPlaylist(name);
         Cookies.set('currentPlaylist', name, { expires: 30 });
+    };
+
+    const createPlaylist = () => {
+        const name = newPlaylistName.trim();
+        if (!name || playlists[name]) return;
+        setPlaylists({ ...playlists, [name]: [] });
+        switchPlaylist(name);
+        setNewPlaylistName("");
+        setShowNewPlaylistInput(false);
+        setShowPlaylistDropdown(false);
+        setCurrentPage(1);
     };
 
     const getAudioBuffer = async (file) => {
@@ -120,8 +127,6 @@ const PlaylistTable = () => {
                 formattedLength = `${min}:${sec}`;
             }
 
-            const audioUrl = URL.createObjectURL(file);
-
             return {
                 id: uuidv4(),
                 title: common.title || file.name,
@@ -131,7 +136,7 @@ const PlaylistTable = () => {
                 length: formattedLength,
                 rating: 0,
                 artwork: artworkUrl,
-                audioUrl,
+                audioUrl: URL.createObjectURL(file),
             };
         } catch (err) {
             console.error("Error processing:", file.name, err);
@@ -177,16 +182,22 @@ const PlaylistTable = () => {
         setPlaylists({ ...playlists, [currentPlaylist]: newTracks });
     };
 
-    const createPlaylist = () => {
-        const name = newPlaylistName.trim();
-        if (!name || playlists[name]) return;
-        setPlaylists({ ...playlists, [name]: [] });
-        switchPlaylist(name);
-        setNewPlaylistName("");
-        setShowNewPlaylistInput(false);
-        setShowPlaylistDropdown(false);
-        setCurrentPage(1);
+    const handleDragStart = (e, track) => {
+        e.dataTransfer.effectAllowed = "copy";
+        e.dataTransfer.setData("application/json", JSON.stringify({
+            id: track.id,
+            title: track.title,
+            artist: track.artist,
+            album: track.album,
+            bpm: track.bpm,
+            length: track.length,
+            rating: track.rating,
+            artwork: track.artwork,
+            audioUrl: track.audioUrl,
+        }));
     };
+
+    const tracks = playlists[currentPlaylist] || [];
 
     const filteredTracks = tracks.filter((t) => {
         const q = search.toLowerCase();
@@ -224,33 +235,16 @@ const PlaylistTable = () => {
         return str.length > n ? str.slice(0, n - 2) + ".." : str;
     };
 
-    const handleDragStart = (e, track) => {
-        e.dataTransfer.effectAllowed = "copy";
-        const payload = {
-            id: track.id,
-            title: track.title,
-            artist: track.artist,
-            album: track.album,
-            bpm: track.bpm,
-            length: track.length,
-            rating: track.rating,
-            artwork: track.artwork,
-            audioUrl: track.audioUrl,
-        };
-        e.dataTransfer.setData("application/json", JSON.stringify(payload));
-    };
-
     const playlistNames = Object.keys(playlists);
+
 
     return (
         <div className="playlist-page" onClick={() => setShowPlaylistDropdown(false)}>
             <div className="playlist-table-container">
                 <div className="playlist-topbar">
+
                     <div className="playlist-dropdown-wrapper" onClick={(e) => e.stopPropagation()}>
-                        <button
-                            className="playlist-dropdown-btn"
-                            onClick={() => setShowPlaylistDropdown((v) => !v)}
-                        >
+                        <button className="playlist-dropdown-btn" onClick={() => setShowPlaylistDropdown((v) => !v)}>
                             <span className="label">{currentPlaylist}</span>
                             <span className="arrow">▼</span>
                         </button>
@@ -280,15 +274,14 @@ const PlaylistTable = () => {
                                             <button className="btn-confirm" onClick={createPlaylist}>✓</button>
                                         </div>
                                     ) : (
-                                        <button className="playlist-new-btn" onClick={() => setShowNewPlaylistInput(true)}>
-                                            + New playlist
-                                        </button>
+                                        <button className="playlist-new-btn" onClick={() => setShowNewPlaylistInput(true)}>+ New playlist</button>
                                     )}
                                 </div>
                             </div>
                         )}
                     </div>
 
+                    {/* Search */}
                     <div className="playlist-search">
                         <input
                             type="text"
@@ -300,23 +293,14 @@ const PlaylistTable = () => {
 
                     <div className="playlist-spacer" />
 
-                    <button className="add-track-btn" onClick={() => fileInputRef.current.click()}>
-                        + Add Track
-                    </button>
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        multiple
-                        accept="audio/*"
-                        onChange={handleAddTrack}
-                        style={{ display: "none" }}
-                    />
+                    <button className="add-track-btn" onClick={() => fileInputRef.current.click()}>+ Add Track</button>
+                    <input ref={fileInputRef} type="file" multiple accept="audio/*" onChange={handleAddTrack} style={{ display: "none" }}/>
                 </div>
 
                 <table className="playlist-table">
                     <thead>
                     <tr>
-                        {[ "Artwork", "Track title", "Artist", "Album", "BPM", "Length", "Rating", ""].map(
+                        {["Artwork", "Track title", "Artist", "Album", "BPM", "Length", "Rating", ""].map(
                             (h, i) => <th key={i}>{h}</th>
                         )}
                     </tr>
@@ -325,62 +309,53 @@ const PlaylistTable = () => {
                     {pagedTracks.map((track) => {
                         const isEditing = editingId === track.id;
                         return (
-                            <tr
-                                key={track.id}
-                                draggable
-                                onDragStart={(e) => handleDragStart(e, track)}
-                                style={{ cursor: "grab" }}
-                                title="Drag to a deck"
-                            >
+                            <tr key={track.id} draggable onDragStart={(e) => handleDragStart(e, track)} style={{ cursor: "grab" }} title="Drag to a deck">
 
                                 <td className="cell-artwork">
-                                    {track.artwork ? (
-                                        <img className="track-artwork" src={track.artwork} alt="" />
-                                    ) : (
-                                        <div className="track-artwork-placeholder">♪</div>
-                                    )}
+                                    {track.artwork
+                                        ? <img className="track-artwork" src={track.artwork} alt=""/>
+                                        : <div className="track-artwork-placeholder">♪</div>
+                                    }
                                 </td>
 
                                 <td>
-                                    {isEditing ? (
-                                        <input className="edit-input" value={editValues.title}
-                                               onChange={(e) => setEditValues((v) => ({ ...v, title: e.target.value }))} />
-                                    ) : (
-                                        <span className="track-title">{truncate(track.title, 22)}</span>
-                                    )}
+                                    {isEditing
+                                        ? <input className="edit-input" value={editValues.title} onChange={(e) => setEditValues((v) => ({ ...v, title: e.target.value }))}/>
+                                        : <span className="track-title">{truncate(track.title, 22)}</span>
+                                    }
                                 </td>
 
                                 <td>
-                                    {isEditing ? (
-                                        <input className="edit-input" value={editValues.artist}
-                                               onChange={(e) => setEditValues((v) => ({ ...v, artist: e.target.value }))} />
-                                    ) : truncate(track.artist, 18)}
+                                    {isEditing
+                                        ? <input className="edit-input" value={editValues.artist} onChange={(e) => setEditValues((v) => ({ ...v, artist: e.target.value }))}/>
+                                        : truncate(track.artist, 18)
+                                    }
                                 </td>
 
                                 <td>
-                                    {isEditing ? (
-                                        <input className="edit-input" value={editValues.album}
-                                               onChange={(e) => setEditValues((v) => ({ ...v, album: e.target.value }))} />
-                                    ) : truncate(track.album, 18)}
+                                    {isEditing
+                                        ? <input className="edit-input" value={editValues.album} onChange={(e) => setEditValues((v) => ({ ...v, album: e.target.value }))}/>
+                                        : truncate(track.album, 18)
+                                    }
                                 </td>
 
                                 <td className="cell-center">{track.bpm}</td>
                                 <td className="cell-center">{track.length}</td>
 
                                 <td className="cell-rating">
-                                    <StarRating rating={track.rating} onChange={(r) => updateRating(track.id, r)} />
+                                    <StarRating rating={track.rating} onChange={(r) => updateRating(track.id, r)}/>
                                 </td>
 
                                 <td className="cell-actions">
                                     <div className="actions-cell">
-                                        {isEditing ? (
-                                            <button className="btn-save" onClick={() => saveEdit(track.id)}>Save</button>
-                                        ) : (
-                                            <button className="btn-edit" onClick={() => startEdit(track)}>Edit</button>
-                                        )}
+                                        {isEditing
+                                            ? <button className="btn-save" onClick={() => saveEdit(track.id)}>Save</button>
+                                            : <button className="btn-edit" onClick={() => startEdit(track)}>Edit</button>
+                                        }
                                         <button className="btn-delete" onClick={() => deleteTrack(track.id)}>Remove</button>
                                     </div>
                                 </td>
+
                             </tr>
                         );
                     })}
@@ -388,12 +363,10 @@ const PlaylistTable = () => {
                 </table>
 
                 <div className="playlist-footer">
-          <span id="total-playlist-length">
-            {tracks.length} Track{tracks.length !== 1 ? "s" : ""}
-              {totalSeconds > 0 &&
-                  ", " + (totalHours > 0 ? `${totalHours} hour${totalHours !== 1 ? "s " : " "}` : "") +
-                  `${totalMinutes} minute${totalMinutes !== 1 ? "s" : ""}`}
-          </span>
+                    <span id="total-playlist-length">
+                        {tracks.length} Track{tracks.length !== 1 ? "s" : ""}
+                        {totalSeconds > 0 && ", " + (totalHours > 0 ? `${totalHours} hour${totalHours !== 1 ? "s " : " "}` : "") + `${totalMinutes} minute${totalMinutes !== 1 ? "s" : ""}`}
+                    </span>
 
                     {totalPages > 1 && (
                         <div className="pagination">
@@ -402,17 +375,14 @@ const PlaylistTable = () => {
                                 page === "..." ? (
                                     <span key={"e" + idx} className="pagination-ellipsis">…</span>
                                 ) : (
-                                    <button
-                                        key={page}
-                                        className={`pagination-btn${page === safePage ? " active" : ""}`}
-                                        onClick={() => goToPage(page)}
-                                    >{page}</button>
+                                    <button key={page} className={`pagination-btn${page === safePage ? " active" : ""}`} onClick={() => goToPage(page)}>{page}</button>
                                 )
                             )}
                             <button className="pagination-btn" onClick={() => goToPage(safePage + 1)} disabled={safePage === totalPages}>›</button>
                         </div>
                     )}
                 </div>
+
             </div>
         </div>
     );

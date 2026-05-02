@@ -5,23 +5,19 @@ import { Link } from 'react-router';
 const FEATURES = [
     {
         title: 'Dual decks with live waveforms',
-        detail: 'Load any track onto Deck A or Deck B by dragging it from your playlist. Each deck renders a scrolling waveform in real time using WaveSurfer, so you can see exactly where you are in the track and anticipate drops, breaks, and transitions.',
+        detail: 'Load any track onto Deck A or Deck B by dragging it from your playlist. Each deck renders a scrolling waveform in real time using WaveSurfer, so you can see exactly where you are in the track.',
     },
     {
-        title: '3-band EQ + crossfader',
-        detail: 'Each deck has its own High, Mid, and Low EQ knobs wired directly into the Web Audio API signal chain. The crossfader uses a constant-power cosine curve so the volume stays consistent as you blend from one deck to the other.',
+        title: 'LOW/MID/HIGH/CFX Knobs + crossfader',
+        detail: 'Each deck has its own High, Mid, and Low EQ knobs. The crossfader lets you easily transition from one track to another.',
     },
     {
         title: 'Loop regions & cue points',
-        detail: 'Hit IN to mark a loop start, then OUT to close it — MXR creates a region on the waveform and loops it seamlessly. You also get three hot-cue slots per deck to stamp timestamps and jump back to them instantly.',
-    },
-    {
-        title: 'Auto BPM & ID3 tag import',
-        detail: 'When you add a file, MXR reads its ID3 tags automatically — title, artist, album, and artwork — and runs a BPM analysis in the background. No manual entry needed; your track is ready to play in seconds.',
+        detail: 'Hit IN to mark a loop start, then OUT to close it. A Region is created on the waveform and loops continuously. You also get three hot-cue slots per deck to save timestamps and jump back to them.',
     },
     {
         title: 'Playlist management',
-        detail: 'Organise your tracks into named playlists, search by title, artist or album, edit metadata inline, and rate tracks with a five-star system. Everything lives in your session — just drag a row onto a deck when you\'re ready to play it.',
+        detail: 'Organise your tracks into named playlists, search by title, artist or album and rate tracks with a five-star system.',
     },
 ];
 
@@ -34,7 +30,7 @@ const AboutPage = () => {
         <div className="about-page">
 
             <div className="about-hero">
-                <p className="about-sub">A browser-based DJ mixer for bedroom DJs and music enthusiasts.</p>
+                <p className="about-sub">Features</p>
             </div>
 
             <div className="about-body">

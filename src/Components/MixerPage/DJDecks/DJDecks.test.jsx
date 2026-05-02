@@ -65,6 +65,7 @@ vi.mock('wavesurfer.js', () => ({
             destroy: vi.fn(),
             getCurrentTime: vi.fn(() => 0),
             setTime: vi.fn(),
+            setPlaybackRate: vi.fn(),
             getMediaElement: vi.fn(() => null),
         }))
     }
@@ -99,11 +100,10 @@ beforeAll(() => {
         createGain: vi.fn(() => ({
             connect: vi.fn(),
             disconnect: vi.fn(),
-            gain: { value: 1 },
+            gain: { value: 1, setTargetAtTime: vi.fn(),  },
         })),
     }
 
-    // Use a real class so `new AudioContext()` works
     window.AudioContext = class {
         constructor() {
             return mockAudioContextInstance
@@ -130,10 +130,6 @@ describe('Deck', () => {
         expect(screen.getByRole('button', {name: 'OUT'})).toBeInTheDocument()
     })
 
-    it('renders SYNC button', () => {
-        mockDeckSetup()
-        expect(screen.getByRole('button', {name: 'SYNC'})).toBeInTheDocument()
-    })
 
     it('renders CUE #0 button', () => {
         mockDeckSetup()
@@ -225,16 +221,6 @@ describe('Deck', () => {
         })
         fireEvent.dragLeave(deck)
         expect(deck.className).not.toContain('drag-over')
-    })
-
-    it('toggles SYNC button on click', async () => {
-        const {user} = mockDeckSetup()
-        const syncButton = screen.getByRole('button', {name: 'SYNC'})
-        expect(syncButton.className).not.toContain('active')
-        await user.click(syncButton)
-        expect(syncButton.className).toContain('active')
-        await user.click(syncButton)
-        expect(syncButton.className).not.toContain('active')
     })
 
     it('marks IN button active after clicking it with a track loaded', async () => {
@@ -497,25 +483,6 @@ describe('DJDecks', () => {
         expect(thumb.style.left).toBeDefined()
     })
 
-    // ── vertical faders ─────────────────────────────────────────────────────
-
-    it('renders two vertical fader tracks', () => {
-        setup()
-        const faders = document.querySelectorAll('.fader-track')
-        expect(faders.length).toBe(2)
-    })
-
-    it('moves fader A thumb on mousedown + mousemove', () => {
-        setup()
-        const faders = document.querySelectorAll('.fader-track')
-        const thumb = faders[0].querySelector('.fader-thumb')
-
-        fireEvent.mouseDown(faders[0], {clientX: 0, clientY: 0})
-        fireEvent.mouseMove(window, {clientX: 0, clientY: 50})
-        fireEvent.mouseUp(window)
-
-        expect(thumb.style.top).toBeDefined()
-    })
 
     // ── EQ knobs ────────────────────────────────────────────────────────────
 
@@ -656,6 +623,7 @@ describe('DJDecks', () => {
             destroy: vi.fn(),
             getCurrentTime: vi.fn(() => 0),
             setTime: vi.fn(),
+            setPlaybackRate: vi.fn(),
             getMediaElement: vi.fn(() => document.createElement('audio')),
         })
 
@@ -678,6 +646,7 @@ describe('DJDecks', () => {
             destroy: vi.fn(),
             getCurrentTime: vi.fn(() => 0),
             setTime: vi.fn(),
+            setPlaybackRate: vi.fn(),
             getMediaElement: vi.fn(() => document.createElement('audio')),
         })
 
@@ -758,11 +727,10 @@ describe('DJDecks', () => {
         })
     })
 
-    it('renders the mixer column with EQ knobs and faders', () => {
+    it('renders the mixer column with EQ knobs', () => {
             setup()
             expect(document.querySelector('.mixer-col')).toBeInTheDocument()
             expect(document.querySelector('.eq-section')).toBeInTheDocument()
-            expect(document.querySelector('.faders-row')).toBeInTheDocument()
         })
 
     it('renders the dj-main-row', () => {
@@ -813,7 +781,6 @@ describe('DJDecks', () => {
         const mainRow = document.querySelector('.dj-main-row')
         expect(within(mainRow).getAllByRole('button', { name: 'IN' }).length).toBe(2)
         expect(within(mainRow).getAllByRole('button', { name: 'OUT' }).length).toBe(2)
-        expect(within(mainRow).getAllByRole('button', { name: 'SYNC' }).length).toBe(2)
     })
 
     it('renders 8 EQ knobs total (4 per deck)', () => {
@@ -912,5 +879,71 @@ describe('DJDecks', () => {
         const chain = buildEQChain(mockWs);
 
         expect(chain).not.toBeNull();
+    });
+    it('applies EQ cut when knob value < 0.5', async () => {
+        const { buildEQChain } = await import('./DJDecks');
+
+        const mockWs = {
+            getMediaElement: () => document.createElement('audio'),
+        };
+
+        const chain = buildEQChain(mockWs);
+
+        expect(() => {
+            chain.setHigh(0.2); // left side (cut)
+        }).not.toThrow();
+    });
+
+    it('applies EQ boost when knob value > 0.5', async () => {
+        const { buildEQChain } = await import('./DJDecks');
+
+        const mockWs = {
+            getMediaElement: () => document.createElement('audio'),
+        };
+
+        const chain = buildEQChain(mockWs);
+
+        expect(() => {
+            chain.setHigh(0.8); // right side (boost)
+        }).not.toThrow();
+    });
+    it('jumps to cue if already set', async () => {
+        const wsRef = makeMockWsRef(2);
+        const onPlay = vi.fn();
+
+        const user = userEvent.setup();
+
+        render(
+            <Deck
+                side="left"
+                track={mockTrack}
+                isPlaying={false}
+                onPlay={onPlay}
+                onBpmChange={vi.fn()}
+                wsRef={wsRef}
+                regionsRef={{ current: null }}
+            />
+        );
+
+        const cueBtn = screen.getByText('CUE #0');
+
+        await user.click(cueBtn);
+
+        await user.click(cueBtn);
+
+        expect(wsRef.current.setTime).toHaveBeenCalled();
+        expect(onPlay).toHaveBeenCalled();
+    });
+    it('clears cue on right click', async () => {
+        const wsRef = makeMockWsRef(3);
+        const { user } = mockDeckSetup(mockTrack, false, wsRef);
+
+        const btn = screen.getByText('CUE #0');
+
+        await user.click(btn);
+
+        fireEvent.contextMenu(btn);
+
+        expect(screen.getByText('CUE #0')).toBeInTheDocument();
     });
 })

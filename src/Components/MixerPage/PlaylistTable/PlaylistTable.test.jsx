@@ -5,6 +5,7 @@ import PlaylistTable from "./PlaylistTable";
 import userEvent from '@testing-library/user-event'
 import { parseBlob } from 'music-metadata-browser'
 import { analyze } from 'web-audio-beat-detector'
+import Cookies from "js-cookie";
 
 //
 vi.mock('music-metadata-browser', () => ({
@@ -28,6 +29,11 @@ beforeAll(() => {
     }))
 
     window.URL.createObjectURL = vi.fn().mockReturnValue("blob:mock-url")
+})
+
+beforeEach(() => {
+    Cookies.remove('mxr-playlists')
+    Cookies.remove('mxr-current-playlist')
 })
 // helper for simulating real user input
 const setup = () => {
@@ -221,7 +227,7 @@ describe('PlaylistTable', () => {
             expect(screen.getByText(/6 Tracks/i)).toBeInTheDocument()
         })
 
-        const page2Button = screen.getByRole('button', { name: '2' })
+        const page2Button = await screen.getByRole('button', { name: '2' })
         await user.click(page2Button)
 
         expect(screen.getByText('NEWSONG')).toBeInTheDocument()
@@ -291,7 +297,7 @@ describe('PlaylistTable', () => {
         const fileInput = document.querySelector('input[type="file"]')
         await user.upload(fileInput, fakeFile)
 
-        const page2Button = screen.getByRole('button', { name: '2' })
+        const page2Button = await screen.getByRole('button', { name: '2' })
         await user.click(page2Button)
 
         await waitFor(() => {
@@ -315,7 +321,7 @@ describe('PlaylistTable', () => {
 
         const fileInput = document.querySelector('input[type="file"]')
         await user.upload(fileInput, fakeFile)
-        const page2Button = screen.getByRole('button', { name: '2' })
+        const page2Button = await screen.getByRole('button', { name: '2' })
         await user.click(page2Button)
         await waitFor(() => {
             expect(screen.getByText('my-cool-track.mp3')).toBeInTheDocument()
@@ -337,7 +343,7 @@ describe('PlaylistTable', () => {
         const fileInput = document.querySelector('input[type="file"]')
         await user.upload(fileInput, fakeFile)
 
-        const page2Button = screen.getByRole('button', { name: '2' })
+        const page2Button = await screen.getByRole('button', { name: '2' })
         await user.click(page2Button)
         await waitFor(() => {
             expect(screen.getByText('NODURATION')).toBeInTheDocument()
@@ -365,7 +371,7 @@ describe('PlaylistTable', () => {
 
         const fileInput = document.querySelector('input[type="file"]')
         await user.upload(fileInput, fakeFile)
-        const page2Button = screen.getByRole('button', { name: '2' })
+        const page2Button = await screen.getByRole('button', { name: '2' })
         await user.click(page2Button)
         await waitFor(() => {
             expect(screen.getByText('ARTSONG')).toBeInTheDocument()
@@ -409,7 +415,7 @@ describe('PlaylistTable', () => {
         const fileInput = document.querySelector('input[type="file"]')
         await user.upload(fileInput, fakeFile)
 
-        const page2Button = screen.getByRole('button', { name: '2' })
+        const page2Button = await screen.getByRole('button', { name: '2' })
         await user.click(page2Button)
 
         expect(screen.getByRole('button', { name: '›' })).toBeDisabled()
