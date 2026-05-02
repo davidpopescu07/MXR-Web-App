@@ -1,28 +1,30 @@
-import React, {useCallback, useEffect, useRef, useState} from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import WaveSurfer from "wavesurfer.js";
 import RegionsPlugin from "wavesurfer.js/dist/plugins/regions.esm.js";
+import { useDJDecks } from "./UseDJDecks";
 import "./DJDecks.css";
 
+// ─── AUDIO CONTEXT ────────────────────────────────────────────────────────────
 
 let sharedAC = null;
 
-function getAC() {
+export function getAC() {
     if (!sharedAC || sharedAC.state === "closed") {
         sharedAC = new (window.AudioContext || window.webkitAudioContext)();
     }
     return sharedAC;
 }
 
+// ─── EQ CHAIN ─────────────────────────────────────────────────────────────────
 
 const mediaSourceCache = new WeakMap();
-
 
 export function buildEQChain(ws) {
     const mediaEl = ws.getMediaElement?.();
     if (!mediaEl) return null;
 
     const ac = getAC();
-    if (ac.state === 'suspended')  ac.resume();
+    if (ac.state === 'suspended') ac.resume();
 
     let source = mediaSourceCache.get(mediaEl);
     if (!source) {
@@ -37,7 +39,6 @@ export function buildEQChain(ws) {
 
     try { source.disconnect(); } catch (_) {}
 
-    // EQ bands
     const high = ac.createBiquadFilter();
     high.type = 'highshelf';
     high.frequency.value = 10000;
@@ -68,7 +69,6 @@ export function buildEQChain(ws) {
     cfx.connect(masterGain);
     masterGain.connect(ac.destination);
 
-    //db for tracks
     function knobToEQ(v) {
         if (v < 0.5) return -60 + (v / 0.5) * 60;
         else return (v - 0.5) * 24;
@@ -77,10 +77,7 @@ export function buildEQChain(ws) {
     function applyCfx(v) {
         const center = 0.5;
         const deadzone = 0.05;
-        if (Math.abs(v - center) < deadzone) {
-            cfx.type = 'allpass';
-            return;
-        }
+        if (Math.abs(v - center) < deadzone) { cfx.type = 'allpass'; return; }
         if (v < center) {
             cfx.type = 'lowpass';
             const t = (center - v) / center;
@@ -111,11 +108,11 @@ export function buildEQChain(ws) {
     };
 }
 
+// ─── KNOB ─────────────────────────────────────────────────────────────────────
 
 function Knob({label, value, onChange, size = 36, min = 0, max = 1}) {
     const startY = useRef(0);
     const startVal = useRef(value);
-
     const angle = -135 + ((value - min) / (max - min)) * 270;
 
     const onMouseDown = (e) => {
@@ -154,6 +151,8 @@ function Knob({label, value, onChange, size = 36, min = 0, max = 1}) {
     );
 }
 
+// ─── CROSSFADER ───────────────────────────────────────────────────────────────
+
 function Crossfader({value, onChange}) {
     const trackRef = useRef(null);
 
@@ -182,15 +181,14 @@ function Crossfader({value, onChange}) {
     );
 }
 
-function WaveformInner({track, isPlaying, wsRef, regionsRef, onReady}) {
+// ─── WAVEFORM ─────────────────────────────────────────────────────────────────
+
+function WaveformInner({track, isPlaying, wsRef, regionsRef}) {
     const containerRef = useRef(null);
 
     useEffect(() => {
         if (!track?.audioUrl || !containerRef.current) return;
-        if (wsRef.current) {
-            wsRef.current.destroy();
-            wsRef.current = null;
-        }
+        if (wsRef.current) { wsRef.current.destroy(); wsRef.current = null; }
 
         const ac = getAC();
         const regions = RegionsPlugin.create();
@@ -211,11 +209,7 @@ function WaveformInner({track, isPlaying, wsRef, regionsRef, onReady}) {
         });
 
         if (regionsRef) regionsRef.current = regions;
-
-        ws.on("ready", () => {
-            ws.setPlaybackRate(1);
-        });
-
+        ws.on("ready", () => ws.setPlaybackRate(1));
         wsRef.current = ws;
 
         return () => {
@@ -236,9 +230,10 @@ function WaveformInner({track, isPlaying, wsRef, regionsRef, onReady}) {
     return <div ref={containerRef} style={{width: "100%", height: "100%"}}/>;
 }
 
+// ─── DECK ─────────────────────────────────────────────────────────────────────
+
 export function Deck({side, track, isPlaying, onPlay, onBpmChange, wsRef, regionsRef}) {
     const [dragOver, setDragOver] = useState(false);
-    const [syncActive, setSyncActive] = useState(false);
     const [loop, setLoop] = useState({active: false, start: null, end: null});
     const [cues, setCues] = useState([null, null, null]);
     const [elapsed, setElapsed] = useState(0);
@@ -246,25 +241,7 @@ export function Deck({side, track, isPlaying, onPlay, onBpmChange, wsRef, region
     const activeRegionRef = useRef(null);
     const regionOutUnsubRef = useRef(null);
 
-
-    useEffect(() => {
-        const resumeAC = () => {
-            const ac = getAC();
-            if (ac.state === 'suspended') {
-                ac.resume();
-            }
-        };
-
-        window.addEventListener('click', resumeAC);
-        window.addEventListener('keydown', resumeAC);
-
-        return () => {
-            window.removeEventListener('click', resumeAC);
-            window.removeEventListener('keydown', resumeAC);
-        };
-    }, []);
-
-    //Elapsed timer
+    // Elapsed timer
     useEffect(() => {
         if (isPlaying) {
             timerRef.current = setInterval(() => {
@@ -276,11 +253,9 @@ export function Deck({side, track, isPlaying, onPlay, onBpmChange, wsRef, region
         return () => clearInterval(timerRef.current);
     }, [isPlaying]);
 
+    // Loop helpers
     const clearLoopRegion = useCallback(() => {
-        if (regionOutUnsubRef.current) {
-            regionOutUnsubRef.current();
-            regionOutUnsubRef.current = null;
-        }
+        if (regionOutUnsubRef.current) { regionOutUnsubRef.current(); regionOutUnsubRef.current = null; }
         if (activeRegionRef.current) {
             try { activeRegionRef.current.remove(); } catch (_) {}
             activeRegionRef.current = null;
@@ -291,46 +266,27 @@ export function Deck({side, track, isPlaying, onPlay, onBpmChange, wsRef, region
         const regions = regionsRef?.current;
         const ws = wsRef.current;
         if (!regions || !ws) return;
-
         clearLoopRegion();
-
-        const region = regions.addRegion({
-            start,
-            end,
-            color: "rgba(245, 166, 35, 0.25)",
-            drag: true,
-            resize: true,
-        });
+        const region = regions.addRegion({start, end, color: "rgba(245, 166, 35, 0.25)", drag: true, resize: true});
         activeRegionRef.current = region;
-
         regionOutUnsubRef.current = ws.on("timeupdate", (currentTime) => {
-            if (currentTime >= region.end) {
-                ws.setTime(region.start);
-            }
+            if (currentTime >= region.end) ws.setTime(region.start);
         });
-
         ws.setTime(start);
     }, [regionsRef, wsRef, clearLoopRegion]);
 
-    useEffect(() => {
-        return () => { clearLoopRegion(); };
-    }, [track?.audioUrl, clearLoopRegion]);
+    useEffect(() => { return () => { clearLoopRegion(); }; }, [track?.audioUrl, clearLoopRegion]);
 
-    //  Loop button handlers
+    // Loop handlers
     const handleIn = useCallback(() => {
         if (!wsRef.current || !track) return;
-        const t = wsRef.current.getCurrentTime();
         clearLoopRegion();
-        setLoop({active: false, start: t, end: null});
+        setLoop({active: false, start: wsRef.current.getCurrentTime(), end: null});
     }, [wsRef, track, clearLoopRegion]);
 
     const handleOut = useCallback(() => {
         if (!wsRef.current || !track) return;
-        if (loop.active) {
-            clearLoopRegion();
-            setLoop({active: false, start: null, end: null});
-            return;
-        }
+        if (loop.active) { clearLoopRegion(); setLoop({active: false, start: null, end: null}); return; }
         const t = wsRef.current.getCurrentTime();
         if (loop.start == null) return;
         const start = Math.min(loop.start, t);
@@ -340,7 +296,7 @@ export function Deck({side, track, isPlaying, onPlay, onBpmChange, wsRef, region
         createLoopRegion(start, end);
     }, [wsRef, track, loop, clearLoopRegion, createLoopRegion]);
 
-
+    // Cue handlers
     const handleCue = (idx) => {
         if (!wsRef.current || !track) return;
         if (cues[idx] === null) {
@@ -357,12 +313,7 @@ export function Deck({side, track, isPlaying, onPlay, onBpmChange, wsRef, region
         setCues(prev => { const c = [...prev]; c[idx] = null; return c; });
     };
 
-    const formatTime = (s) => {
-        const m = Math.floor(s / 60);
-        const sec = Math.floor(s % 60).toString().padStart(2, "0");
-        return `${m}:${sec}`;
-    };
-
+    const formatTime = (s) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, "0")}`;
     const timeDisplay = `${track ? formatTime(elapsed) : "--:--"} / ${track?.length ?? "--:--"}`;
     const bpm = track?.bpm ?? null;
 
@@ -382,10 +333,11 @@ export function Deck({side, track, isPlaying, onPlay, onBpmChange, wsRef, region
                 } catch (_) {}
             }}
         >
+            {/* Loop controls */}
             <div className="deck-controls-bar">
                 <div className="deck-btns">
-                    <button className={`deck-btn${loop.start != null ? " active" : ""}`} onClick={handleIn} title="Set loop start point">IN</button>
-                    <button className={`deck-btn${loop.active ? " active" : ""}`} onClick={handleOut} title={loop.active ? "Cancel loop" : "Set loop end point"}>OUT</button>
+                    <button className={`deck-btn${loop.start != null ? " active" : ""}`} onClick={handleIn} title="Set loop start">IN</button>
+                    <button className={`deck-btn${loop.active ? " active" : ""}`} onClick={handleOut} title={loop.active ? "Cancel loop" : "Set loop end"}>OUT</button>
                 </div>
             </div>
 
@@ -423,11 +375,11 @@ export function Deck({side, track, isPlaying, onPlay, onBpmChange, wsRef, region
                     <span className="bpm-label">BPM</span>
                     <span className="bpm-number">{bpm ?? "—"}</span>
                     <div className="bpm-adjust">
-                        <button className="bpm-adj-btn" disabled={!track} onClick={() => onBpmChange && onBpmChange(1)} title="+1 BPM">+</button>
-                        <button className="bpm-adj-btn" disabled={!track} onClick={() => onBpmChange && onBpmChange(-1)} title="-1 BPM">−</button>
+                        <button className="bpm-adj-btn" disabled={!track} onClick={() => onBpmChange?.(1)}>+</button>
+                        <button className="bpm-adj-btn" disabled={!track} onClick={() => onBpmChange?.(-1)}>−</button>
                     </div>
                 </div>
-                <button className={`play-btn${isPlaying ? " playing" : ""}`} disabled={!track} onClick={onPlay} style={{paddingBottom: 5}} title={isPlaying ? "Pause" : "Play"}>
+                <button className={`play-btn${isPlaying ? " playing" : ""}`} disabled={!track} onClick={onPlay} style={{paddingBottom: 5}}>
                     {isPlaying ? "⏸" : "▶"}
                 </button>
             </div>
@@ -435,174 +387,19 @@ export function Deck({side, track, isPlaying, onPlay, onBpmChange, wsRef, region
     );
 }
 
+// ─── DJ DECKS (ROOT) ──────────────────────────────────────────────────────────
+
 export default function DJDecks() {
-
-    const [deckA, setDeckA] = useState(null);
-    const [deckB, setDeckB] = useState(null);
-    const [playingA, setPlayingA] = useState(false);
-    const [playingB, setPlayingB] = useState(false);
-
-    const [eqA, setEqA] = useState({high: 0.5, mid: 0.5, low: 0.5, cfx: 0.5});
-    const [eqB, setEqB] = useState({high: 0.5, mid: 0.5, low: 0.5, cfx: 0.5});
-    const eqARef = useRef({high: 0.5, mid: 0.5, low: 0.5, cfx: 0.5});
-    const eqBRef = useRef({high: 0.5, mid: 0.5, low: 0.5, cfx: 0.5});
-    const handleEqAChange = (v) => { setEqA(v); eqARef.current = v; };
-    const handleEqBChange = (v) => { setEqB(v); eqBRef.current = v; };
-
-    const [crossfader, setCrossfader] = useState(0.5);
-    const crossfaderRef = useRef(0.5);
-    const handleCrossfaderChange = (v) => { setCrossfader(v); crossfaderRef.current = v; };
-
-    const wsARef = useRef(null);
-    const wsBRef = useRef(null);
-    const regionsARef = useRef(null);
-    const regionsBRef = useRef(null);
-
-    const eqChainA = useRef(null);
-    const eqChainB = useRef(null);
-
-
-    useEffect(() => {
-        if (!eqChainA.current && wsARef.current) {
-            const ac = getAC();
-            if (ac.state === 'running') {
-                eqChainA.current = buildEQChain(wsARef.current);
-            }
-        }
-        const chain = eqChainA.current;
-        if (!chain) return;
-        chain.setHigh(eqA.high);
-        chain.setMid(eqA.mid);
-        chain.setLow(eqA.low);
-        chain.setCfx(eqA.cfx);
-    }, [eqA]);
-
-    useEffect(() => {
-        if (!eqChainB.current && wsBRef.current) {
-            const ac = getAC();
-            if (ac.state === 'running') {
-                eqChainB.current = buildEQChain(wsBRef.current);
-            }
-        }
-        const chain = eqChainB.current;
-        if (!chain) return;
-        chain.setHigh(eqB.high);
-        chain.setMid(eqB.mid);
-        chain.setLow(eqB.low);
-        chain.setCfx(eqB.cfx);
-    }, [eqB]);
-
-    // Replace your play toggles in the JSX with these
-    const handlePlayA = useCallback(async () => {
-        const ac = getAC();
-        if (ac.state === 'suspended') {
-            await ac.resume();
-        }
-
-        if (!eqChainA.current && wsARef.current) {
-            const chain = buildEQChain(wsARef.current);
-            if (chain) {
-                eqChainA.current = chain;
-                chain.setHigh(eqARef.current.high);
-                chain.setMid(eqARef.current.mid);
-                chain.setLow(eqARef.current.low);
-                chain.setCfx(eqARef.current.cfx);
-                chain.setVolume(Math.cos(crossfaderRef.current * (Math.PI / 2)));
-            } else {
-                console.warn('handlePlayA: buildEQChain returned null — mediaElement:', wsARef.current?.getMediaElement?.());
-            }
-        }
-        setPlayingA(p => !p);
-    }, []);
-
-    const handlePlayB = useCallback(async () => {
-        const ac = getAC();
-        if (ac.state === 'suspended') {
-            await ac.resume();
-        }
-
-        if (!eqChainB.current && wsBRef.current) {
-            const chain = buildEQChain(wsBRef.current);
-            if (chain) {
-                eqChainB.current = chain;
-                chain.setHigh(eqBRef.current.high);
-                chain.setMid(eqBRef.current.mid);
-                chain.setLow(eqBRef.current.low);
-                chain.setCfx(eqBRef.current.cfx);
-                chain.setVolume(Math.cos((1 - crossfaderRef.current) * (Math.PI / 2)));
-            } else {
-                console.warn('handlePlayB: buildEQChain returned null — mediaElement:', wsBRef.current?.getMediaElement?.());
-            }
-        }
-        setPlayingB(p => !p);
-    }, []);
-
-    // --- Apply EQ changes to live chains ---
-    useEffect(() => {
-        const chain = eqChainA.current;
-        if (!chain) return;
-        chain.setHigh(eqA.high);
-        chain.setMid(eqA.mid);
-        chain.setLow(eqA.low);
-        chain.setCfx(eqA.cfx);
-    }, [eqA]);
-
-    useEffect(() => {
-        const chain = eqChainB.current;
-        if (!chain) return;
-        chain.setHigh(eqB.high);
-        chain.setMid(eqB.mid);
-        chain.setLow(eqB.low);
-        chain.setCfx(eqB.cfx);
-    }, [eqB]);
-
-    useEffect(() => {
-        const gainA = Math.cos(crossfader * (Math.PI / 2));
-        const gainB = Math.cos((1 - crossfader) * (Math.PI / 2));
-        if (eqChainA.current) eqChainA.current.setVolume(gainA);
-        if (eqChainB.current) eqChainB.current.setVolume(gainB);
-    }, [crossfader]);
-
-    const onDeckRootDrop = useCallback((side) => async (e) => {
-        e.preventDefault();
-
-        // Resume AudioContext immediately on drop — this is a user gesture
-        const ac = getAC();
-        if (ac.state === 'suspended') await ac.resume();
-
-        try {
-            const data = JSON.parse(e.dataTransfer.getData('application/json'));
-            if (data && typeof data === 'object') {
-                if (side === 'left') {
-                    setDeckA({...data, originalBpm: parseInt(data.bpm) || 0});
-                    setPlayingA(false);
-                    eqChainA.current = null;
-                }
-                if (side === 'right') {
-                    setDeckB({...data, originalBpm: parseInt(data.bpm) || 0});
-                    setPlayingB(false);
-                    eqChainB.current = null;
-                }
-            }
-        } catch (_) {}
-    }, []);
-
-    const adjustBpm = (side, delta) => {
-        if (side === 'left' && deckA?.bpm) {
-            const newBpm = (parseInt(deckA.bpm) || 0) + delta;
-            setDeckA(d => ({...d, bpm: newBpm}));
-            if (wsARef.current) {
-                wsARef.current.setPlaybackRate(newBpm / (deckA.originalBpm || parseInt(deckA.bpm)));
-            }
-        }
-        if (side === 'right' && deckB?.bpm) {
-            const newBpm = (parseInt(deckB.bpm) || 0) + delta;
-            setDeckB(d => ({...d, bpm: newBpm}));
-            if (wsBRef.current) {
-                wsBRef.current.setPlaybackRate(newBpm / (deckB.originalBpm || parseInt(deckB.bpm)));
-            }
-        }
-    };
+    const {
+        deckA, deckB,
+        playingA, playingB,
+        eqA, eqB,
+        handleEqAChange, handleEqBChange,
+        crossfader, handleCrossfaderChange,
+        wsARef, wsBRef, regionsARef, regionsBRef,
+        handlePlayA, handlePlayB,
+        onDeckRootDrop, adjustBpm,
+    } = useDJDecks();
 
     return (
         <div className="dj-root">
@@ -628,14 +425,14 @@ export default function DJDecks() {
                 </div>
             </div>
 
-            {/* Main row: deck A | mixer (EQ knobs) | deck B */}
+            {/* Main row: deck A | mixer | deck B */}
             <div className="dj-main-row">
 
                 <div onDragOver={(e) => e.preventDefault()} onDrop={onDeckRootDrop("left")}>
                     <Deck side="left" track={deckA} isPlaying={playingA} onPlay={handlePlayA} onBpmChange={(d) => adjustBpm("left", d)} wsRef={wsARef} regionsRef={regionsARef}/>
                 </div>
 
-                {/* Mixer column: EQ knobs for both decks, left column = deck A, right column = deck B */}
+                {/* Mixer: left column = deck A, right column = deck B */}
                 <div className="mixer-col">
                     <div className="eq-section">
                         <div className="eq-knob-group"><Knob label="HIGH" value={eqA.high} onChange={(v) => handleEqAChange({...eqA, high: v})} size={32}/></div>
