@@ -4,7 +4,6 @@ import RegionsPlugin from "wavesurfer.js/dist/plugins/regions.esm.js";
 import { useDJDecks } from "./UseDJDecks";
 import "./DJDecks.css";
 
-// ─── AUDIO CONTEXT ────────────────────────────────────────────────────────────
 
 let sharedAC = null;
 
@@ -15,7 +14,7 @@ export function getAC() {
     return sharedAC;
 }
 
-// ─── EQ CHAIN ─────────────────────────────────────────────────────────────────
+// EQ Chain
 
 const mediaSourceCache = new WeakMap();
 
@@ -108,8 +107,6 @@ export function buildEQChain(ws) {
     };
 }
 
-// ─── KNOB ─────────────────────────────────────────────────────────────────────
-
 function Knob({label, value, onChange, size = 36, min = 0, max = 1}) {
     const startY = useRef(0);
     const startVal = useRef(value);
@@ -151,7 +148,6 @@ function Knob({label, value, onChange, size = 36, min = 0, max = 1}) {
     );
 }
 
-// ─── CROSSFADER ───────────────────────────────────────────────────────────────
 
 function Crossfader({value, onChange}) {
     const trackRef = useRef(null);
@@ -181,7 +177,6 @@ function Crossfader({value, onChange}) {
     );
 }
 
-// ─── WAVEFORM ─────────────────────────────────────────────────────────────────
 
 function WaveformInner({track, isPlaying, wsRef, regionsRef}) {
     const containerRef = useRef(null);
@@ -230,7 +225,6 @@ function WaveformInner({track, isPlaying, wsRef, regionsRef}) {
     return <div ref={containerRef} style={{width: "100%", height: "100%"}}/>;
 }
 
-// ─── DECK ─────────────────────────────────────────────────────────────────────
 
 export function Deck({side, track, isPlaying, onPlay, onBpmChange, wsRef, regionsRef}) {
     const [dragOver, setDragOver] = useState(false);
@@ -387,7 +381,6 @@ export function Deck({side, track, isPlaying, onPlay, onBpmChange, wsRef, region
     );
 }
 
-// ─── DJ DECKS (ROOT) ──────────────────────────────────────────────────────────
 
 export default function DJDecks() {
     const {

@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { usePlaylist } from "./UsePlaylistTable";
 import "./PlaylistTable.css";
 
-// ─── STAR RATING ──────────────────────────────────────────────────────────────
 
 const StarRating = ({ rating, onChange }) => {
     const [hover, setHover] = useState(0);
@@ -21,7 +20,6 @@ const StarRating = ({ rating, onChange }) => {
     );
 };
 
-// ─── PLAYLIST TABLE ───────────────────────────────────────────────────────────
 
 const PlaylistTable = () => {
     const {
@@ -38,6 +36,7 @@ const PlaylistTable = () => {
         safePage, totalPages, pagedTracks,
         goToPage, getPageNumbers,
         totalSeconds, totalHours, totalMinutes,
+        loading, apiError,
     } = usePlaylist();
 
     const truncate = (str, n) => (!str ? "" : str.length > n ? str.slice(0, n - 2) + ".." : str);
@@ -45,6 +44,13 @@ const PlaylistTable = () => {
     return (
         <div className="playlist-page" onClick={() => setShowPlaylistDropdown(false)}>
             <div className="playlist-table-container">
+
+                {/* API error banner */}
+                {apiError && (
+                    <div className="api-error-banner" style={{margin: "30px"}}>
+                        {apiError}
+                    </div>
+                )}
 
                 {/* Top bar */}
                 <div className="playlist-topbar">
@@ -102,6 +108,9 @@ const PlaylistTable = () => {
                     <button className="add-track-btn" onClick={() => fileInputRef.current.click()}>+ Add Track</button>
                     <input ref={fileInputRef} type="file" multiple accept="audio/*" onChange={handleAddTrack} style={{display: "none"}}/>
                 </div>
+
+                {/* Loading overlay */}
+                {loading && <div className="playlist-loading">Loading…</div>}
 
                 {/* Track table */}
                 <table className="playlist-table">

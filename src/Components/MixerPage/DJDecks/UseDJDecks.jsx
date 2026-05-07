@@ -3,13 +3,13 @@ import { buildEQChain, getAC } from "./DJDecks";
 
 export function useDJDecks() {
 
-    // --- Deck state ---
+    // Deck state
     const [deckA, setDeckA] = useState(null);
     const [deckB, setDeckB] = useState(null);
     const [playingA, setPlayingA] = useState(false);
     const [playingB, setPlayingB] = useState(false);
 
-    // --- EQ state + refs (refs avoid stale closures in callbacks) ---
+    // EQ state + refs
     const [eqA, setEqA] = useState({high: 0.5, mid: 0.5, low: 0.5, cfx: 0.5});
     const [eqB, setEqB] = useState({high: 0.5, mid: 0.5, low: 0.5, cfx: 0.5});
     const eqARef = useRef({high: 0.5, mid: 0.5, low: 0.5, cfx: 0.5});
@@ -17,22 +17,22 @@ export function useDJDecks() {
     const handleEqAChange = (v) => { setEqA(v); eqARef.current = v; };
     const handleEqBChange = (v) => { setEqB(v); eqBRef.current = v; };
 
-    // --- Crossfader state + ref ---
+    // Crossfader state + ref
     const [crossfader, setCrossfader] = useState(0.5);
     const crossfaderRef = useRef(0.5);
     const handleCrossfaderChange = (v) => { setCrossfader(v); crossfaderRef.current = v; };
 
-    // --- WaveSurfer + regions refs ---
+    // WaveSurfer + regions refs
     const wsARef = useRef(null);
     const wsBRef = useRef(null);
     const regionsARef = useRef(null);
     const regionsBRef = useRef(null);
 
-    // --- EQ chain refs ---
+    // EQ chain refs
     const eqChainA = useRef(null);
     const eqChainB = useRef(null);
 
-    // --- Play handlers: build EQ chain lazily on first play (guarantees user gesture) ---
+    // Play handlers
     const handlePlayA = useCallback(async () => {
         const ac = getAC();
         if (ac.state === 'suspended') await ac.resume();
@@ -69,7 +69,7 @@ export function useDJDecks() {
         setPlayingB(p => !p);
     }, []);
 
-    // --- Apply EQ changes to live chains ---
+    // Apply EQ changes to live chains
     useEffect(() => {
         const chain = eqChainA.current;
         if (!chain) return;
@@ -99,7 +99,7 @@ export function useDJDecks() {
         if (eqChainB.current) eqChainB.current.setVolume(gainB);
     }, [crossfader]);
 
-    // --- Drag and drop from playlist ---
+    // Drag and drop from playlist
     const onDeckRootDrop = useCallback((side) => async (e) => {
         e.preventDefault();
         const ac = getAC();
@@ -122,7 +122,7 @@ export function useDJDecks() {
         } catch (_) {}
     }, []);
 
-    // --- BPM nudge ---
+    // BPM adjust
     const adjustBpm = (side, delta) => {
         if (side === 'left' && deckA?.bpm) {
             const newBpm = (parseInt(deckA.bpm) || 0) + delta;
@@ -141,17 +141,12 @@ export function useDJDecks() {
     };
 
     return {
-        // Deck state
         deckA, deckB,
         playingA, playingB,
-        // EQ state + handlers
         eqA, eqB,
         handleEqAChange, handleEqBChange,
-        // Crossfader
         crossfader, handleCrossfaderChange,
-        // Refs
         wsARef, wsBRef, regionsARef, regionsBRef,
-        // Handlers
         handlePlayA, handlePlayB,
         onDeckRootDrop, adjustBpm,
     };
