@@ -5,7 +5,7 @@ import DJDecks from "./DJDecks/DJDecks";
 
 const MixerPage = () => {
     return (
-        <div>
+        <div className="mixer-page">
             <DJDecks/>
             <PlaylistTable/>
         </div>

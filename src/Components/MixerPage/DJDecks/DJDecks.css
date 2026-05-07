@@ -83,7 +83,7 @@
 
 .cf-label {
     font-size: 14px;
-    letter-spacing: 2px;
+    letter-spacing: 1px;
     color: white;
     font-family: Roboto, sans-serif;
 }
@@ -302,7 +302,6 @@
 
 .bpm-label {
     font-size: 12px;
-    letter-spacing: 2px;
     color: white;
     margin-bottom: 2px;
 }
@@ -419,7 +418,6 @@
 
 .eq-knob-label {
     font-size: 10px;
-    letter-spacing: 2px;
     color: white;
     font-family: Roboto,sans-serif;
 }
