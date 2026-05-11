@@ -5,16 +5,16 @@ const {
     parsePagination,
 } = require("../validators/trackValidators");
 
-function playlistGuard(res, name) {
-    if (!store.playlistExists(name)) {
+async function playlistGuard(res, name) {
+    if (!await store.playlistExists(name)) {
         res.status(404).json({ errors: [`Playlist "${name}" not found`] });
         return false;
     }
     return true;
 }
 
-function listTracks(req, res) {
-    if (!playlistGuard(res, req.params.name)) return;
+async function listTracks(req, res) {
+    if (!await playlistGuard(res, req.params.name)) return;
 
     const pagination = parsePagination(req.query);
     if (!pagination.valid) return res.status(400).json({ errors: pagination.errors });
@@ -44,23 +44,23 @@ function listTracks(req, res) {
     });
 }
 
-function getTrack(req, res) {
-    if (!playlistGuard(res, req.params.name)) return;
+async function getTrack(req, res) {
+    if (!await playlistGuard(res, req.params.name)) return;
 
-    const track = store.getTrack(req.params.name, req.params.id);
+    const track = await store.getTrack(req.params.name, req.params.id);
     if (!track) return res.status(404).json({ errors: [`Track "${req.params.id}" not found`] });
 
     return res.status(200).json(track);
 }
 
-function createTrack(req, res) {
-    if (!playlistGuard(res, req.params.name)) return;
+async function createTrack(req, res) {
+    if (!await playlistGuard(res, req.params.name)) return;
 
-    const validation = validateCreateTrack(req.body);
+    const validation = await validateCreateTrack(req.body);
     if (!validation.valid) return res.status(400).json({ errors: validation.errors });
 
     const { title, artist, album, bpm, length, rating, artwork = null } = req.body;
-    const track = store.addTrack(req.params.name, {
+    const track = await store.addTrack(req.params.name, {
         title: title.trim(),
         artist: artist.trim(),
         album: album.trim(),
@@ -73,13 +73,13 @@ function createTrack(req, res) {
     return res.status(201).json(track);
 }
 
-function updateTrack(req, res) {
-    if (!playlistGuard(res, req.params.name)) return;
+async function updateTrack(req, res) {
+    if (!await playlistGuard(res, req.params.name)) return;
 
-    const existing = store.getTrack(req.params.name, req.params.id);
+    const existing = await store.getTrack(req.params.name, req.params.id);
     if (!existing) return res.status(404).json({ errors: [`Track "${req.params.id}" not found`] });
 
-    const validation = validateUpdateTrack(req.body);
+    const validation = await validateUpdateTrack(req.body);
     if (!validation.valid) return res.status(400).json({ errors: validation.errors });
 
     const allowed = ["title", "artist", "album", "bpm", "length", "rating", "artwork"];
@@ -95,23 +95,23 @@ function updateTrack(req, res) {
         }
     }
 
-    const updated = store.updateTrack(req.params.name, req.params.id, updates);
+    const updated = await store.updateTrack(req.params.name, req.params.id, updates);
     return res.status(200).json(updated);
 }
 
-function deleteTrack(req, res) {
-    if (!playlistGuard(res, req.params.name)) return;
+async function deleteTrack(req, res) {
+    if (!await playlistGuard(res, req.params.name)) return;
 
-    const deleted = store.deleteTrack(req.params.name, req.params.id);
+    const deleted = await store.deleteTrack(req.params.name, req.params.id);
     if (!deleted) return res.status(404).json({ errors: [`Track "${req.params.id}" not found`] });
 
     return res.status(204).send();
 }
 
-function getStats(req, res) {
-    if (!playlistGuard(res, req.params.name)) return;
+async function getStats(req, res) {
+    if (!await playlistGuard(res, req.params.name)) return;
 
-    const tracks = store.getTracks(req.params.name);
+    const tracks = await store.getTracks(req.params.name);
 
     let totalSeconds = 0;
     for (const t of tracks) {

@@ -70,7 +70,7 @@ export function usePlaylist() {
                 }
             } catch {
                 setPlaylistNames(SEED_PLAYLISTS);
-                setApiError("    Backend unreachable — showing seed data");
+                setApiError("    Backend unreachable — showing test data");
             }
         })();
         // eslint-disable-next-line react-hooks/exhaustive-deps

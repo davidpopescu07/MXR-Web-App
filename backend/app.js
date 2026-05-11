@@ -6,6 +6,15 @@ const statsRoutes = require("./routes/statsRoutes");
 
 const app = express();
 
+const path = require("path");
+const fs   = require("fs");
+
+// Serve uploaded files statically
+const uploadsDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
+app.use("/uploads", express.static(uploadsDir));
+
 // Global middleware
 app.use(cors());
 app.use(express.json());
@@ -27,5 +36,7 @@ app.use((err, _req, res, _next) => {
     console.error(err);
     res.status(500).json({ errors: ["Internal server error"] });
 });
+
+
 
 module.exports = app;
