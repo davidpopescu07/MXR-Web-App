@@ -34,6 +34,18 @@ async function request(path, options = {}) {
 
 
 export const api = {
+    login: (credentials) =>
+        request("/auth/login", { method: "POST", body: credentials }),
+
+    signup: (payload) =>
+        request("/auth/signup", { method: "POST", body: payload }),
+
+    logout: () =>
+        request("/auth/logout", { method: "POST" }),
+
+    me: () =>
+        request("/auth/me"),
+
     getPlaylists: () => request("/playlists"),
 
     createPlaylist: (name) => request("/playlists", { method: "POST", body: { name } }),

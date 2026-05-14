@@ -4,12 +4,15 @@ import { render, screen} from '@testing-library/react'
 import {describe, it, expect} from 'vitest'
 import Login from './Login'
 import {MemoryRouter} from "react-router";
-import Navbar from "../../LandingPage/Navbar/Navbar";
 
 describe('Login', () => {
 
     const renderLogin = () =>
-        render(<Login/>)
+        render(
+            <MemoryRouter>
+                <Login/>
+            </MemoryRouter>
+        )
 
     it('renders the text', () => {
         renderLogin()

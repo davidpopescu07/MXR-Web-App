@@ -2,11 +2,16 @@
 import {render, screen} from '@testing-library/react'
 import Signup from './Signup'
 import {describe, it, expect} from 'vitest'
+import { MemoryRouter } from "react-router";
 
 
 describe('Signup', () => {
     const renderSignup = () =>
-        render(<Signup/>)
+        render(
+            <MemoryRouter>
+                <Signup/>
+            </MemoryRouter>
+        )
 
     it('renders the text', () => {
         renderSignup()

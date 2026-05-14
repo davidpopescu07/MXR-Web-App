@@ -1,8 +1,17 @@
 import React from 'react';
 import './Navbar.css';
 import {Link} from "react-router"
+import { api } from "../../../Api";
 
-const Navbar = () => {
+const Navbar = ({ currentUser, setCurrentUser }) => {
+    const handleLogout = async () => {
+        try {
+            await api.logout();
+        } finally {
+            setCurrentUser(null);
+        }
+    };
+
     return (
         <nav className="navbar">
             <div className="navbar-left">
@@ -27,18 +36,34 @@ const Navbar = () => {
                     {/*<Link className="navbar-element" to="/samples">*/}
                     {/*    Samples*/}
                     {/*</Link>*/}
+                    {currentUser?.role === "ADMIN" && (
+                        <Link className="navbar-element" to="/admin">
+                            Admin
+                        </Link>
+                    )}
                     <Link className="navbar-element" to="/about">
                         About
                     </Link>
                 </ul>
             </div>
             <div className="navbar-right">
-                <Link id="login" to="/login" className="login-button">
-                    Login
-                </Link>
-                <Link id="signupButton" to="/signup" className="signup-button">
-                    Sign up
-                </Link>
+                {currentUser ? (
+                    <>
+                        <span className="navbar-user">{currentUser.username}</span>
+                        <button type="button" id="logoutButton" onClick={handleLogout}>
+                            Log out
+                        </button>
+                    </>
+                ) : (
+                    <>
+                        <Link id="login" to="/login" className="login-button">
+                            Login
+                        </Link>
+                        <Link id="signupButton" to="/signup" className="signup-button">
+                            Sign up
+                        </Link>
+                    </>
+                )}
             </div>
         </nav>
     );

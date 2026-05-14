@@ -37,6 +37,10 @@
     align-items: center;
 }
 
+.navbar-user {
+    font-size: 18px;
+}
+
 #loginButton {
     font-size: 20px;
 }
@@ -49,6 +53,17 @@
     border:0;
     color: black;
     background-color: white;
+}
+
+#logoutButton {
+    font-size: 18px;
+    border-radius: 12px;
+    padding: 8px 12px 8px 12px;
+    margin-right: 10px;
+    border: 0;
+    color: black;
+    background-color: white;
+    cursor: pointer;
 }
 
 

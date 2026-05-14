@@ -1,24 +1,40 @@
 require("dotenv").config();
+const bcrypt = require("bcrypt");
 const { PrismaClient } = require("@prisma/client");
 const { PrismaPg } = require("@prisma/adapter-pg");
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
+const INVALID_ADMIN_PASSWORDS = new Set(["hashed_not_used_here", "hashed_not_used_in_tests"]);
 
 async function getDefaultUserId() {
-    const user = await prisma.user.upsert({
+    const existingUser = await prisma.user.findUnique({
         where: { email: "admin@mxr.com" },
-        update: {},
-        create: {
-            username: "admin",
-            email: "admin@mxr.com",
-            password: "hashed_not_used_here",
-            role: "ADMIN",
-        },
-        select: { id: true },
+        select: { id: true, password: true },
     });
 
-    return user.id;
+    if (!existingUser) {
+        const user = await prisma.user.create({
+            data: {
+                username: "admin",
+                email: "admin@mxr.com",
+                password: await bcrypt.hash("admin123", 10),
+                role: "ADMIN",
+            },
+            select: { id: true },
+        });
+
+        return user.id;
+    }
+
+    if (INVALID_ADMIN_PASSWORDS.has(existingUser.password)) {
+        await prisma.user.update({
+            where: { email: "admin@mxr.com" },
+            data: { password: await bcrypt.hash("admin123", 10) },
+        });
+    }
+
+    return existingUser.id;
 }
 
 async function getPlaylistNames() {
