@@ -1,18 +1,22 @@
 .TextBox {
-    width: 60%;
-    height: 20%;
+    width: min(60%, 720px);
+    min-height: 20%;
     margin-left: 100px;
     margin-top: 60px;
     font-family: 'Roboto', sans-serif;
+    color: #000000;
 }
 
 .MainTopic h1 {
     font-size: 58px;
+    margin: 0 0 24px;
 }
 
 .SubTopic h2 {
     font-size: 24px;
     font-weight: 100;
+    color: #686868;
+    line-height: 1.5;
 }
 
 #MixOnlineButton {
@@ -25,4 +29,57 @@
     font-weight: bold;
     border: 0;
     margin-top: 100px;
+}
+
+.landing-page-layout {
+    display: flex;
+    align-items: center;
+    min-height: calc(100vh - 84px);
+}
+
+@media (max-width: 900px) {
+    .landing-page-layout {
+        flex-direction: column;
+        align-items: stretch;
+        min-height: auto;
+        padding: 24px 20px 48px;
+        gap: 24px;
+    }
+
+    .TextBox {
+        width: 100%;
+        margin: 0;
+    }
+
+    .MainTopic h1 {
+        font-size: 44px;
+        line-height: 1.05;
+        margin: 0 0 16px;
+    }
+
+    .SubTopic h2 {
+        font-size: 20px;
+        line-height: 1.5;
+        margin: 0;
+    }
+
+    #MixOnlineButton {
+        margin-top: 40px;
+        padding: 18px 18px;
+    }
+}
+
+@media (max-width: 640px) {
+    .MainTopic h1 {
+        font-size: 34px;
+    }
+
+    .SubTopic h2 {
+        font-size: 18px;
+    }
+
+    #MixOnlineButton {
+        width: 100%;
+        text-align: center;
+    }
 }

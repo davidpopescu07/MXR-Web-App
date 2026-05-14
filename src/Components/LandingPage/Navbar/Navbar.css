@@ -8,8 +8,10 @@
     justify-content: space-between;
     font-family: Roboto, sans-serif;
     padding-left: 30px;
+    padding-right: 20px;
     padding-top: 12px;
     padding-bottom: 16px;
+    gap: 20px;
 }
 
 .navbar-center .navbar-center-links {
@@ -29,6 +31,7 @@
 .navbar-left {
     align-items: center;
     display: flex;
+    min-width: 0;
 }
 
 .navbar-right {
@@ -79,4 +82,60 @@
 a {
     text-decoration: none;
     color: white;
+}
+
+@media (max-width: 900px) {
+    .navbar {
+        flex-wrap: wrap;
+        padding: 12px 16px 16px;
+    }
+
+    .navbar-center {
+        order: 3;
+        width: 100%;
+    }
+
+    .navbar-center-links {
+        flex-wrap: wrap;
+        gap: 16px;
+        justify-content: flex-start;
+        font-size: 16px;
+    }
+
+    .navbar-right {
+        gap: 12px;
+        margin-left: auto;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    #appName {
+        margin-left: 12px;
+        font-size: 30px;
+    }
+}
+
+@media (max-width: 640px) {
+    .navbar {
+        gap: 14px;
+    }
+
+    .navbar-left {
+        width: 100%;
+    }
+
+    .navbar-right {
+        width: 100%;
+        margin-left: 0;
+        justify-content: flex-start;
+    }
+
+    .navbar-user {
+        font-size: 16px;
+    }
+
+    #signupButton,
+    #logoutButton {
+        margin-right: 0;
+    }
 }

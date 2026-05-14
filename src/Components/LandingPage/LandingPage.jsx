@@ -4,8 +4,8 @@ import MainTopicLandingPage from "./LandingPageStuff/MainTopicLandingPage/MainTo
 
 const LandingPage = () => {
     return (
-        <div>
-            <div style={{display: 'flex'}}>
+        <div className="landing-page">
+            <div className="landing-page-layout">
                 <MainTopicLandingPage/>
                 <LandingPageImage/>
             </div>

@@ -461,3 +461,93 @@
     box-shadow: 0 2px 6px #000;
 }
 
+@media (max-width: 900px) {
+    .dj-top-row,
+    .dj-main-row {
+        grid-template-columns: 1fr;
+    }
+
+    .crossfader-col {
+        padding: 16px 20px;
+    }
+
+    .deck.left,
+    .deck.right,
+    .waveform-panel.left,
+    .waveform-panel.right {
+        border-left: 0;
+        border-right: 0;
+    }
+
+    .dj-main-row {
+        gap: 12px;
+    }
+
+    .mixer-col {
+        order: 2;
+        padding: 18px;
+    }
+
+    .deck-controls-bar,
+    .track-info-row,
+    .bpm-play-row {
+        flex-wrap: wrap;
+    }
+
+    .deck.right .track-info-row,
+    .deck.right .deck-controls-bar,
+    .deck.right .bpm-play-row {
+        flex-direction: row;
+        text-align: left;
+        padding: 0;
+    }
+
+    .left .track-timer,
+    .right .track-timer {
+        margin: 0;
+        width: 100%;
+        padding: 0;
+        font-size: 16px;
+    }
+
+    .bpm-play-row {
+        padding-left: 0;
+        margin-top: 8px;
+        justify-content: space-between;
+    }
+
+    .deck.left .bpm-adjust,
+    .deck.right .bpm-adjust {
+        left: auto;
+        right: -28px;
+    }
+}
+
+@media (max-width: 640px) {
+    .deck {
+        padding: 14px 12px;
+    }
+
+    .track-info-row {
+        align-items: flex-start;
+    }
+
+    .track-artwork-box {
+        width: 56px;
+        height: 56px;
+    }
+
+    .cue-row {
+        flex-wrap: wrap;
+    }
+
+    .cue-btn {
+        min-width: calc(50% - 6px);
+    }
+
+    .cf-track {
+        width: 100%;
+        max-width: 220px;
+    }
+}
+

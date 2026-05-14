@@ -4,3 +4,9 @@
     min-height: 100vh;
     background: #101010;
 }
+
+@media (max-width: 640px) {
+    .mixer-page {
+        min-height: auto;
+    }
+}
