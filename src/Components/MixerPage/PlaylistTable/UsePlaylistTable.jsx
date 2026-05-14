@@ -43,18 +43,15 @@ export function usePlaylist() {
     const [loading, setLoading]   = useState(false);
     const [apiError, setApiError] = useState(null);
 
-    // Map<trackId, { artwork: string|null, audioUrl: string|null }>
-    const clientAssets = useRef(new Map());
-
     const fileInputRef = useRef(null);
 
 
-    /** Merge backend tracks with locally-held artwork/audioUrl */
+    /** Normalize backend tracks for UI consumers */
     const mergeAssets = useCallback((backendTracks) =>
             backendTracks.map((t) => ({
                 ...t,
-                artwork:  clientAssets.current.get(t.id)?.artwork  ?? null,
-                audioUrl: clientAssets.current.get(t.id)?.audioUrl ?? null,
+                artwork: t.artwork ?? null,
+                audioUrl: t.audioUrl ?? null,
             })),
         []);
 
@@ -146,10 +143,15 @@ export function usePlaylist() {
                 console.error("BPM detection failed", err);
             }
 
-            let artworkUrl = null;
+            let artworkFile = null;
             if (common.picture?.length > 0) {
                 const picture = common.picture[0];
-                artworkUrl = URL.createObjectURL(new Blob([picture.data], { type: picture.format }));
+                const artworkExtension = picture.format.split("/")[1] ?? "jpg";
+                artworkFile = new File(
+                    [picture.data],
+                    `${file.name}-artwork.${artworkExtension}`,
+                    { type: picture.format }
+                );
             }
 
             let length = "--:--";
@@ -159,8 +161,6 @@ export function usePlaylist() {
                 length = `${min}:${sec}`;
             }
 
-            const audioUrl = URL.createObjectURL(file);
-
             return {
                 payload: {
                     title:  common.title  || file.name,
@@ -169,9 +169,8 @@ export function usePlaylist() {
                     bpm:    bpm || 0,
                     length,
                     rating: 0,
-                    artwork: null,
                 },
-                assets: { artwork: artworkUrl, audioUrl },
+                files: { audioFile: file, artworkFile },
             };
         } catch (err) {
             console.error("Error processing file:", file.name, err);
@@ -185,11 +184,14 @@ export function usePlaylist() {
 
         const processed = (await Promise.all(files.map(processFile))).filter(Boolean);
 
-        for (const { payload, assets } of processed) {
+        for (const { payload, files: uploadedFiles } of processed) {
             try {
-                const created = await api.createTrack(currentPlaylist, payload);
-                // Store artwork + audioUrl locally against the server-assigned id
-                clientAssets.current.set(created.id, assets);
+                const formData = new FormData();
+                Object.entries(payload).forEach(([key, value]) => formData.append(key, String(value)));
+                formData.append("audioFile", uploadedFiles.audioFile);
+                if (uploadedFiles.artworkFile) formData.append("artworkFile", uploadedFiles.artworkFile);
+
+                await api.createTrack(currentPlaylist, formData);
             } catch (err) {
                 setApiError(err.message);
             }
@@ -204,7 +206,6 @@ export function usePlaylist() {
     const deleteTrack = async (id) => {
         try {
             await api.deleteTrack(currentPlaylist, id);
-            clientAssets.current.delete(id);
             // If we deleted the last item on the page, go back one
             const newTotal = pagination.total - 1;
             const newTotalPages = Math.max(1, Math.ceil(newTotal / TRACKS_PER_PAGE));
@@ -250,8 +251,8 @@ export function usePlaylist() {
             id: track.id, title: track.title, artist: track.artist,
             album: track.album, bpm: track.bpm, length: track.length,
             rating: track.rating,
-            artwork:  clientAssets.current.get(track.id)?.artwork  ?? track.artwork  ?? null,
-            audioUrl: clientAssets.current.get(track.id)?.audioUrl ?? track.audioUrl ?? null,
+            artwork: track.artwork ?? null,
+            audioUrl: track.audioUrl ?? null,
         }));
     };
 

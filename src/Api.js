@@ -1,12 +1,23 @@
+const getApiBase = () => {
+    const configuredBase = process.env.REACT_APP_API_URL?.trim();
+    if (configuredBase) return configuredBase.replace(/\/$/, "");
 
+    if (typeof window !== "undefined" && window.location.hostname) {
+        return `${window.location.protocol}//${window.location.hostname}:3001/api`;
+    }
 
-const BASE = "http://localhost:3001/api";
+    return "http://localhost:3001/api";
+};
+
+const BASE = getApiBase();
 
 async function request(path, options = {}) {
+    const isFormData = options.body instanceof FormData;
     const res = await fetch(`${BASE}${path}`, {
-        headers: { "Content-Type": "application/json" },
+        headers: isFormData ? undefined : { "Content-Type": "application/json" },
+        credentials: "include",
         ...options,
-        body: options.body ? JSON.stringify(options.body) : undefined,
+        body: options.body ? (isFormData ? options.body : JSON.stringify(options.body)) : undefined,
     });
 
     if (res.status === 204) return null;

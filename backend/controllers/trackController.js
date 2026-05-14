@@ -5,6 +5,19 @@ const {
     parsePagination,
 } = require("../validators/trackValidators");
 
+function buildAssetUrl(req, assetPath) {
+    if (!assetPath) return null;
+    return `${req.protocol}://${req.get("host")}${assetPath}`;
+}
+
+function serializeTrack(req, track) {
+    return {
+        ...track,
+        artwork: buildAssetUrl(req, track.artworkPath),
+        audioUrl: buildAssetUrl(req, track.audioPath),
+    };
+}
+
 async function playlistGuard(res, name) {
     if (!await store.playlistExists(name)) {
         res.status(404).json({ errors: [`Playlist "${name}" not found`] });
@@ -22,7 +35,7 @@ async function listTracks(req, res) {
     const { page, limit } = pagination;
     const search = (req.query.search ?? "").toLowerCase().trim();
 
-    let tracks = store.getTracks(req.params.name);
+    let tracks = await store.getTracks(req.params.name);
 
     if (search) {
         tracks = tracks.filter(
@@ -36,7 +49,7 @@ async function listTracks(req, res) {
     const total = tracks.length;
     const totalPages = Math.max(1, Math.ceil(total / limit));
     const safePage = Math.min(page, totalPages);
-    const data = tracks.slice((safePage - 1) * limit, safePage * limit);
+    const data = tracks.slice((safePage - 1) * limit, safePage * limit).map((track) => serializeTrack(req, track));
 
     return res.status(200).json({
         data,
@@ -50,7 +63,7 @@ async function getTrack(req, res) {
     const track = await store.getTrack(req.params.name, req.params.id);
     if (!track) return res.status(404).json({ errors: [`Track "${req.params.id}" not found`] });
 
-    return res.status(200).json(track);
+    return res.status(200).json(serializeTrack(req, track));
 }
 
 async function createTrack(req, res) {
@@ -59,7 +72,9 @@ async function createTrack(req, res) {
     const validation = await validateCreateTrack(req.body);
     if (!validation.valid) return res.status(400).json({ errors: validation.errors });
 
-    const { title, artist, album, bpm, length, rating, artwork = null } = req.body;
+    const audioFile = req.files?.audioFile?.[0] ?? null;
+    const artworkFile = req.files?.artworkFile?.[0] ?? null;
+    const { title, artist, album, bpm, length, rating } = req.body;
     const track = await store.addTrack(req.params.name, {
         title: title.trim(),
         artist: artist.trim(),
@@ -67,10 +82,11 @@ async function createTrack(req, res) {
         bpm: Number(bpm),
         length,
         rating: Number(rating),
-        artwork,
+        artworkPath: artworkFile ? `/uploads/artwork/${artworkFile.filename}` : null,
+        audioPath: audioFile ? `/uploads/audio/${audioFile.filename}` : null,
     });
 
-    return res.status(201).json(track);
+    return res.status(201).json(serializeTrack(req, track));
 }
 
 async function updateTrack(req, res) {
@@ -96,7 +112,7 @@ async function updateTrack(req, res) {
     }
 
     const updated = await store.updateTrack(req.params.name, req.params.id, updates);
-    return res.status(200).json(updated);
+    return res.status(200).json(serializeTrack(req, updated));
 }
 
 async function deleteTrack(req, res) {

@@ -1,12 +1,31 @@
+require("dotenv").config();
+const bcrypt = require("bcrypt");
 const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
+const { PrismaPg } = require("@prisma/adapter-pg");
+
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
-    const playlist = await prisma.playlist.upsert({
-        where: { name: "CoolPlaylist" },
+    // Create admin user
+    const admin = await prisma.user.upsert({
+        where: { email: "admin@mxr.com" },
+        update: {},
+        create: {
+            username: "admin",
+            email: "admin@mxr.com",
+            password: await bcrypt.hash("admin123", 10),
+            role: "ADMIN",
+        },
+    });
+
+    // Create CoolPlaylist belonging to admin
+    await prisma.playlist.upsert({
+        where: { userId_name: { userId: admin.id, name: "CoolPlaylist" } },
         update: {},
         create: {
             name: "CoolPlaylist",
+            userId: admin.id,
             tracks: {
                 create: [
                     { id: "fake-1", title: "Xtal",             artist: "Aphex Twin", album: "Selected Ambient Works 85-92",  bpm: 115, length: "4:53", rating: 5 },
@@ -18,7 +37,8 @@ async function main() {
             },
         },
     });
-    console.log("Seeded:", playlist.name);
+
+    console.log("Seeded admin user and CoolPlaylist");
 }
 
 main()

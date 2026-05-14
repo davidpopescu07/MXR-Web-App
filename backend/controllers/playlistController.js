@@ -23,7 +23,8 @@ async function getPlaylist(req, res) {
     if (!await store.playlistExists(name))
         return res.status(404).json({ errors: [`Playlist "${name}" not found`] });
 
-    const tracks = store.getPlaylist(name);
+    const playlist = await store.getPlaylist(name);
+    const tracks = playlist.tracks;
     return res.status(200).json({ name, trackCount: tracks.length });
 }
 
@@ -36,12 +37,15 @@ async function renamePlaylist(req, res) {
     if (!validation.valid) return res.status(400).json({ errors: validation.errors });
 
     const newName = req.body.name.trim();
-    if (newName === name) return res.status(200).json({ name, trackCount: store.getPlaylist(name).length });
+    if (newName === name) {
+        const playlist = await store.getPlaylist(name);
+        return res.status(200).json({ name, trackCount: playlist.tracks.length });
+    }
 
     if (await store.playlistExists(newName))
         return res.status(409).json({ errors: [`Playlist "${newName}" already exists`] });
 
-    const updated = store.renamePlaylist(name, newName);
+    const updated = await store.renamePlaylist(name, newName);
     return res.status(200).json({ name: updated.name, trackCount: updated.tracks.length });
 }
 

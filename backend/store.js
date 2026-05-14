@@ -1,102 +1,176 @@
 require("dotenv").config();
-const { PrismaClient } = require("./generated/prisma/");
-const prisma = new PrismaClient({
-    datasourceUrl: process.env.DATABASE_URL,
-});
+const { PrismaClient } = require("@prisma/client");
+const { PrismaPg } = require("@prisma/adapter-pg");
 
-// ── Playlist operations ────────────────────────────────────────────────────────
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter });
+
+async function getDefaultUserId() {
+    const user = await prisma.user.upsert({
+        where: { email: "admin@mxr.com" },
+        update: {},
+        create: {
+            username: "admin",
+            email: "admin@mxr.com",
+            password: "hashed_not_used_here",
+            role: "ADMIN",
+        },
+        select: { id: true },
+    });
+
+    return user.id;
+}
 
 async function getPlaylistNames() {
-    const playlists = await prisma.playlist.findMany({ select: { name: true }, orderBy: { createdAt: "asc" } });
+    const userId = await getDefaultUserId();
+    const playlists = await prisma.playlist.findMany({
+        where: { userId },
+        select: { name: true },
+        orderBy: { createdAt: "asc" },
+    });
+
     return playlists.map((p) => p.name);
 }
 
 async function playlistExists(name) {
-    const p = await prisma.playlist.findUnique({ where: { name } });
-    return p !== null;
+    const userId = await getDefaultUserId();
+    const playlist = await prisma.playlist.findUnique({
+        where: { userId_name: { userId, name } },
+    });
+
+    return playlist !== null;
 }
 
 async function getPlaylist(name) {
-    return prisma.playlist.findUnique({ where: { name }, include: { tracks: true } });
+    const userId = await getDefaultUserId();
+    return prisma.playlist.findUnique({
+        where: { userId_name: { userId, name } },
+        include: { tracks: true },
+    });
 }
 
 async function createPlaylist(name) {
-    const p = await prisma.playlist.create({ data: { name }, include: { tracks: true } });
-    return { name: p.name, tracks: p.tracks };
+    const userId = await getDefaultUserId();
+    const playlist = await prisma.playlist.create({
+        data: { name, userId },
+        include: { tracks: true },
+    });
+
+    return { name: playlist.name, tracks: playlist.tracks };
 }
 
 async function deletePlaylist(name) {
-    await prisma.playlist.delete({ where: { name } });
+    const userId = await getDefaultUserId();
+    await prisma.playlist.delete({
+        where: { userId_name: { userId, name } },
+    });
 }
 
 async function renamePlaylist(oldName, newName) {
-    const p = await prisma.playlist.update({
-        where: { name: oldName },
-        data:  { name: newName },
+    const userId = await getDefaultUserId();
+    const playlist = await prisma.playlist.update({
+        where: { userId_name: { userId, name: oldName } },
+        data: { name: newName },
         include: { tracks: true },
     });
-    return { name: p.name, tracks: p.tracks };
+
+    return { name: playlist.name, tracks: playlist.tracks };
 }
 
-// ── Track operations ───────────────────────────────────────────────────────────
-
 async function getTracks(playlistName) {
+    const userId = await getDefaultUserId();
     const playlist = await prisma.playlist.findUnique({
-        where: { name: playlistName },
+        where: { userId_name: { userId, name: playlistName } },
         include: { tracks: { orderBy: { createdAt: "asc" } } },
     });
+
     return playlist ? playlist.tracks : null;
 }
 
 async function getTrack(playlistName, id) {
-    const playlist = await prisma.playlist.findUnique({ where: { name: playlistName } });
+    const userId = await getDefaultUserId();
+    const playlist = await prisma.playlist.findUnique({
+        where: { userId_name: { userId, name: playlistName } },
+    });
     if (!playlist) return null;
+
     return prisma.track.findFirst({ where: { id, playlistId: playlist.id } });
 }
 
 async function addTrack(playlistName, trackData) {
-    const playlist = await prisma.playlist.findUnique({ where: { name: playlistName } });
+    const userId = await getDefaultUserId();
+    const playlist = await prisma.playlist.findUnique({
+        where: { userId_name: { userId, name: playlistName } },
+    });
     if (!playlist) return null;
+
     return prisma.track.create({
         data: {
-            ...trackData,
-            artworkPath: trackData.artworkPath ?? null,
-            audioPath:   trackData.audioPath   ?? null,
-            playlistId:  playlist.id,
+            title: trackData.title,
+            artist: trackData.artist,
+            album: trackData.album,
+            bpm: trackData.bpm,
+            length: trackData.length,
+            rating: trackData.rating,
+            artworkPath: trackData.artworkPath ?? trackData.artwork ?? null,
+            audioPath: trackData.audioPath ?? null,
+            playlistId: playlist.id,
         },
     });
 }
 
 async function updateTrack(playlistName, id, updates) {
-    const playlist = await prisma.playlist.findUnique({ where: { name: playlistName } });
+    const userId = await getDefaultUserId();
+    const playlist = await prisma.playlist.findUnique({
+        where: { userId_name: { userId, name: playlistName } },
+    });
     if (!playlist) return null;
-    return prisma.track.update({ where: { id }, data: updates });
+
+    const { artwork, ...safeUpdates } = updates;
+    if (artwork !== undefined) safeUpdates.artworkPath = artwork;
+
+    return prisma.track.update({ where: { id }, data: safeUpdates });
 }
 
 async function deleteTrack(playlistName, id) {
-    const playlist = await prisma.playlist.findUnique({ where: { name: playlistName } });
+    const userId = await getDefaultUserId();
+    const playlist = await prisma.playlist.findUnique({
+        where: { userId_name: { userId, name: playlistName } },
+    });
     if (!playlist) return false;
+
     const track = await prisma.track.findFirst({ where: { id, playlistId: playlist.id } });
     if (!track) return false;
+
     await prisma.track.delete({ where: { id } });
     return true;
 }
 
-// ── Test helper ────────────────────────────────────────────────────────────────
-
 async function _reset() {
     await prisma.track.deleteMany();
     await prisma.playlist.deleteMany();
+    await prisma.user.deleteMany();
+
+    const user = await prisma.user.create({
+        data: {
+            username: "admin",
+            email: "admin@mxr.com",
+            password: "hashed_not_used_in_tests",
+            role: "ADMIN",
+        },
+    });
+
     await prisma.playlist.create({
         data: {
             name: "CoolPlaylist",
+            userId: user.id,
             tracks: {
                 create: [
-                    { id: "fake-1", title: "Xtal",             artist: "Aphex Twin", album: "Selected Ambient Works 85-92",  bpm: 115, length: "4:53", rating: 5 },
-                    { id: "fake-2", title: "Conceited",         artist: "Remy Ma",    album: "There's something about Remy", bpm: 100, length: "3:40", rating: 5 },
-                    { id: "fake-3", title: "Army of me",        artist: "Bjork",      album: "Post",                         bpm: 172, length: "3:45", rating: 5 },
-                    { id: "fake-5", title: "Born Slippy",       artist: "Underworld", album: "1992-2012",                    bpm: 140, length: "7:36", rating: 5 },
-                    { id: "fake-6", title: "Bohemian Rhapsody", artist: "Queen",      album: "A night at the Opera",         bpm: 72,  length: "5:55", rating: 5 },
+                    { id: "fake-1", title: "Xtal", artist: "Aphex Twin", album: "Selected Ambient Works 85-92", bpm: 115, length: "4:53", rating: 5 },
+                    { id: "fake-2", title: "Conceited", artist: "Remy Ma", album: "There's something about Remy", bpm: 100, length: "3:40", rating: 5 },
+                    { id: "fake-3", title: "Army of me", artist: "Bjork", album: "Post", bpm: 172, length: "3:45", rating: 5 },
+                    { id: "fake-5", title: "Born Slippy", artist: "Underworld", album: "1992-2012", bpm: 140, length: "7:36", rating: 5 },
+                    { id: "fake-6", title: "Bohemian Rhapsody", artist: "Queen", album: "A night at the Opera", bpm: 72, length: "5:55", rating: 5 },
                 ],
             },
         },
@@ -104,8 +178,16 @@ async function _reset() {
 }
 
 module.exports = {
-    getPlaylistNames, playlistExists, getPlaylist,
-    createPlaylist, deletePlaylist, renamePlaylist,
-    getTracks, getTrack, addTrack, updateTrack, deleteTrack,
+    getPlaylistNames,
+    playlistExists,
+    getPlaylist,
+    createPlaylist,
+    deletePlaylist,
+    renamePlaylist,
+    getTracks,
+    getTrack,
+    addTrack,
+    updateTrack,
+    deleteTrack,
     _reset,
 };

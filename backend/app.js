@@ -1,8 +1,11 @@
 const express = require("express");
 const cors = require("cors");
+const session = require("express-session");
 
 const playlistRoutes = require("./routes/playlistRoutes");
 const statsRoutes = require("./routes/statsRoutes");
+const authRoutes = require("./routes/authRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
 const app = express();
 
@@ -13,13 +16,23 @@ const fs   = require("fs");
 const uploadsDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
-app.use("/uploads", express.static(uploadsDir));
-
 // Global middleware
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
+app.use("/uploads", express.static(uploadsDir));
 app.use(express.json());
+app.use(session({
+    secret: process.env.SESSION_SECRET || "mxr-dev-session-secret",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        sameSite: "lax",
+        secure: false,
+    },
+}));
 
 // Routes
+app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
 app.use("/api/playlists", playlistRoutes);
 
 // Stats: /api/playlists/:name/stats  (separate mount so mergeParams works cleanly)
