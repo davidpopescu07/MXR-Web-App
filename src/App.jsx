@@ -1,7 +1,7 @@
 import './App.css';
 import * as React from 'react';
 import Navbar from "./Components/LandingPage/Navbar/Navbar";
-import {Routes, Route} from "react-router";
+import {Navigate, Routes, Route, useLocation} from "react-router";
 import LandingPage from "./Components/LandingPage/LandingPage";
 import MixerPage from "./Components/MixerPage/MixerPage";
 import Login from "./Components/AuthenticationPages/LoginPage/Login";
@@ -12,6 +12,25 @@ import Cookies from "js-cookie";
 import CookiesBanner from './Components/LandingPage/Navbar/Cookies/CookiesBanner'
 import {useEffect, useState} from "react";
 import { api } from "./Api";
+
+const ProtectedRoute = ({ authReady, currentUser, children }) => {
+    const location = useLocation();
+
+    if (!authReady) return null;
+    if (!currentUser) {
+        return <Navigate to="/login" replace state={{ from: location }} />;
+    }
+
+    return children;
+};
+
+const AdminRoute = ({ authReady, currentUser, children }) => {
+    if (!authReady) return null;
+    if (!currentUser) return <Navigate to="/login" replace />;
+    if (currentUser.role !== "ADMIN") return <Navigate to="/mixer" replace />;
+
+    return children;
+};
 
 const App = () => {
     const [currentUser, setCurrentUser] = useState(null);
@@ -44,17 +63,34 @@ const App = () => {
         };
     }, []);
 
+    useEffect(() => {
+        const handleExpiredAuth = () => {
+            setCurrentUser(null);
+        };
+
+        window.addEventListener("auth:expired", handleExpiredAuth);
+        return () => window.removeEventListener("auth:expired", handleExpiredAuth);
+    }, []);
+
     return (
         <div>
             <Navbar currentUser={currentUser} setCurrentUser={setCurrentUser}/>
             {!cookiesAccepted && <CookiesBanner onAccept={handleAccept}/>}
             <Routes>
                 <Route path="/" element={<LandingPage/>}/>
-                <Route path="/mixer" element={<MixerPage/>}/>
+                <Route path="/mixer" element={
+                    <ProtectedRoute authReady={authReady} currentUser={currentUser}>
+                        <MixerPage/>
+                    </ProtectedRoute>
+                }/>
                 <Route path="/about" element={<AboutPage/>}/>
                 <Route path="/login" element={<Login currentUser={currentUser} setCurrentUser={setCurrentUser} authReady={authReady}/>}/>
                 <Route path="/signup" element={<Signup currentUser={currentUser} setCurrentUser={setCurrentUser} authReady={authReady}/>}/>
-                <Route path="/admin" element={<AdminPage currentUser={currentUser}/>}/>
+                <Route path="/admin" element={
+                    <AdminRoute authReady={authReady} currentUser={currentUser}>
+                        <AdminPage currentUser={currentUser}/>
+                    </AdminRoute>
+                }/>
             </Routes>
         </div>
     );

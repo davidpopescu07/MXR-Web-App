@@ -90,11 +90,27 @@
 
 .cf-track {
     width: 160px;
-    height: 4px;
-    background: #474747;
+    height: 32px;
+    background: transparent;
     border-radius: 2px;
     position: relative;
     cursor: pointer;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.cf-track::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 4px;
+    transform: translateY(-50%);
+    background: #474747;
+    border-radius: 2px;
 }
 
 .cf-thumb {
@@ -107,6 +123,8 @@
     border-radius: 2px;
     cursor: grab;
     box-shadow: 0 2px 6px #000;
+    z-index: 1;
+    touch-action: none;
 }
 
 .cf-thumb:active {
@@ -416,6 +434,17 @@
     gap: 4px;
 }
 
+.eq-knob-control {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
 .eq-knob-label {
     font-size: 10px;
     color: white;
@@ -425,6 +454,11 @@
 .knob-svg {
     cursor: ns-resize;
     display: block;
+    pointer-events: none;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .faders-row {
@@ -548,6 +582,21 @@
     .cf-track {
         width: 100%;
         max-width: 220px;
+    }
+
+    .eq-section {
+        gap: 14px 10px;
+    }
+
+    .eq-knob-control {
+        min-width: 44px;
+        min-height: 52px;
+        justify-content: center;
+    }
+
+    .knob-svg {
+        width: 40px;
+        height: 40px;
     }
 }
 

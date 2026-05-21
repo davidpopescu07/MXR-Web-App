@@ -58,7 +58,7 @@ const PlaylistTable = () => {
                     {/* Playlist dropdown */}
                     <div className="playlist-dropdown-wrapper" onClick={(e) => e.stopPropagation()}>
                         <button className="playlist-dropdown-btn" onClick={() => setShowPlaylistDropdown((v) => !v)}>
-                            <span className="label">{currentPlaylist}</span>
+                            <span className="label">{currentPlaylist ?? "Loading..."}</span>
                             <span className="arrow">▼</span>
                         </button>
 

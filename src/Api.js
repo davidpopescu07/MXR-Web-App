@@ -1,31 +1,53 @@
 const getApiBase = () => {
     const configuredBase = process.env.REACT_APP_API_URL?.trim();
-    if (configuredBase) return configuredBase.replace(/\/$/, "");
+    const runtimeBase = typeof window !== "undefined" && window.location.hostname
+        ? `${window.location.protocol}//${window.location.hostname}:3001/api`
+        : "http://localhost:3001/api";
 
-    if (typeof window !== "undefined" && window.location.hostname) {
-        return `${window.location.protocol}//${window.location.hostname}:3001/api`;
+    if (configuredBase) {
+        try {
+            const configuredUrl = new URL(configuredBase);
+            const runtimeHost = typeof window !== "undefined" ? window.location.hostname : "";
+            const configuredIsLocal = ["localhost", "127.0.0.1", "0.0.0.0"].includes(configuredUrl.hostname);
+            const pageIsLan = runtimeHost && !["localhost", "127.0.0.1"].includes(runtimeHost);
+
+            if (configuredIsLocal && pageIsLan) return runtimeBase;
+            if (pageIsLan && configuredUrl.hostname !== runtimeHost) return runtimeBase;
+        } catch {
+            return configuredBase.replace(/\/$/, "");
+        }
+
+        return configuredBase.replace(/\/$/, "");
     }
 
-    return "http://localhost:3001/api";
+    return runtimeBase;
 };
 
 const BASE = getApiBase();
 
 async function request(path, options = {}) {
     const isFormData = options.body instanceof FormData;
-    const res = await fetch(`${BASE}${path}`, {
-        headers: isFormData ? undefined : { "Content-Type": "application/json" },
-        credentials: "include",
-        ...options,
-        body: options.body ? (isFormData ? options.body : JSON.stringify(options.body)) : undefined,
-    });
+    let res;
+    try {
+        res = await fetch(`${BASE}${path}`, {
+            headers: isFormData ? undefined : { "Content-Type": "application/json" },
+            credentials: "include",
+            ...options,
+            body: options.body ? (isFormData ? options.body : JSON.stringify(options.body)) : undefined,
+        });
+    } catch (err) {
+        throw new Error(`Could not reach backend at ${BASE}. Check HTTPS trust, firewall, and current laptop IP.`);
+    }
 
     if (res.status === 204) return null;
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
         const msg = data?.errors?.join(", ") || `HTTP ${res.status}`;
+        if (res.status === 401 && typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("auth:expired", { detail: { message: msg } }));
+        }
         throw new Error(msg);
     }
 

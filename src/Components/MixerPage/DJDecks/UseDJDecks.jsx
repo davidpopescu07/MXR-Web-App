@@ -1,6 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { buildEQChain, getAC } from "./DJDecks";
 
+export function getCrossfaderGains(value) {
+    if (value <= 0.5) {
+        return {gainA: 1, gainB: value * 2};
+    }
+
+    return {gainA: (1 - value) * 2, gainB: 1};
+}
+
 export function useDJDecks() {
 
     // Deck state
@@ -45,7 +53,7 @@ export function useDJDecks() {
                 chain.setMid(eqARef.current.mid);
                 chain.setLow(eqARef.current.low);
                 chain.setCfx(eqARef.current.cfx);
-                chain.setVolume(Math.cos(crossfaderRef.current * (Math.PI / 2)));
+                chain.setVolume(getCrossfaderGains(crossfaderRef.current).gainA);
             }
         }
         setPlayingA(p => !p);
@@ -63,7 +71,7 @@ export function useDJDecks() {
                 chain.setMid(eqBRef.current.mid);
                 chain.setLow(eqBRef.current.low);
                 chain.setCfx(eqBRef.current.cfx);
-                chain.setVolume(Math.cos((1 - crossfaderRef.current) * (Math.PI / 2)));
+                chain.setVolume(getCrossfaderGains(crossfaderRef.current).gainB);
             }
         }
         setPlayingB(p => !p);
@@ -88,13 +96,12 @@ export function useDJDecks() {
         chain.setCfx(eqB.cfx);
     }, [eqB]);
 
-    // --- Crossfader: constant-power taper ---
-    // full left (0)  → gainA=1,     gainB=0
-    // center   (0.5) → gainA=0.707, gainB=0.707
-    // full right (1) → gainA=0,     gainB=1
+    // Crossfader: center keeps both decks at full volume.
+    // full left (0) -> gainA=1, gainB=0
+    // center (0.5) -> gainA=1, gainB=1
+    // full right (1) -> gainA=0, gainB=1
     useEffect(() => {
-        const gainA = Math.cos(crossfader * (Math.PI / 2));
-        const gainB = Math.cos((1 - crossfader) * (Math.PI / 2));
+        const {gainA, gainB} = getCrossfaderGains(crossfader);
         if (eqChainA.current) eqChainA.current.setVolume(gainA);
         if (eqChainB.current) eqChainB.current.setVolume(gainB);
     }, [crossfader]);

@@ -4,6 +4,7 @@ import {describe, it, expect, vi, beforeAll} from 'vitest'
 import userEvent from '@testing-library/user-event'
 import DJDecks from "./DJDecks";
 import {Deck} from './DJDecks'
+import {getCrossfaderGains} from './UseDJDecks'
 import WaveSurfer from 'wavesurfer.js'
 
 const mockTrack = {
@@ -20,6 +21,23 @@ const mockTrackWithAudio = {
     ...mockTrack,
     audioUrl: 'blob:mock-audio-url'
 }
+
+describe('getCrossfaderGains', () => {
+    it('keeps both decks at full volume in the middle', () => {
+        expect(getCrossfaderGains(0.5)).toEqual({gainA: 1, gainB: 1})
+    })
+
+    it('fades only the right deck when sliding left', () => {
+        expect(getCrossfaderGains(0.25)).toEqual({gainA: 1, gainB: 0.5})
+        expect(getCrossfaderGains(0)).toEqual({gainA: 1, gainB: 0})
+    })
+
+    it('fades only the left deck when sliding right', () => {
+        expect(getCrossfaderGains(0.75)).toEqual({gainA: 0.5, gainB: 1})
+        expect(getCrossfaderGains(1)).toEqual({gainA: 0, gainB: 1})
+    })
+})
+
 // A fake wsRef with enough surface area to exercise loop/cue logic
 const makeMockWsRef = (currentTime = 2) => ({
     current: {
@@ -506,6 +524,22 @@ describe('DJDecks', () => {
         })
         fireEvent.mouseMove(window, {clientY: 50})
         fireEvent.mouseUp(window)
+    })
+
+    it('moves a knob on touch drag', () => {
+        setup()
+        const knobs = document.querySelectorAll('.knob-svg')
+        expect(knobs.length).toBeGreaterThan(0)
+
+        fireEvent.touchStart(knobs[0], {
+            touches: [{clientY: 100}],
+            preventDefault: () => {},
+        })
+        fireEvent.touchMove(window, {
+            touches: [{clientY: 50}],
+            preventDefault: () => {},
+        })
+        fireEvent.touchEnd(window)
     })
 
     // ── dragOver on panels ──────────────────────────────────────────────────

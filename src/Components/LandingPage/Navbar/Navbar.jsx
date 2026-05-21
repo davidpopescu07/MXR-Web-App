@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './Navbar.css';
 import {Link} from "react-router"
 import { api } from "../../../Api";
 
 const Navbar = ({ currentUser, setCurrentUser }) => {
+    const [logoFailed, setLogoFailed] = useState(false);
+
     const handleLogout = async () => {
         try {
             await api.logout();
@@ -17,7 +19,16 @@ const Navbar = ({ currentUser, setCurrentUser }) => {
             <div className="navbar-left">
 
 
-                <img className="logo" src="/images/MXR_DarkTheme_TransparentBackground.svg" alt="MXR-Logo" height="56"/>
+                {logoFailed ? (
+                    <div className="logo logo-fallback" aria-label="MXR logo">MXR</div>
+                ) : (
+                    <img
+                        className="logo"
+                        src={`${process.env.PUBLIC_URL || ""}/images/MXR_DarkTheme_TransparentBackground.svg`}
+                        alt="MXR-Logo"
+                        onError={() => setLogoFailed(true)}
+                    />
+                )}
                 <Link to="/">
                     <h1 id="appName"> MXR </h1>
                 </Link>

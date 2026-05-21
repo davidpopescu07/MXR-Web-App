@@ -23,7 +23,8 @@ export function usePlaylist() {
 
     // Core state
     const [playlistNames, setPlaylistNames]           = useState([]);
-    const [currentPlaylist, setCurrentPlaylist]       = useState("CoolPlaylist");
+    const [currentPlaylist, setCurrentPlaylist]       = useState(null);
+    const [playlistsReady, setPlaylistsReady]         = useState(false);
     const [tracks, setTracks]                         = useState([]);          // current page tracks (merged with client assets)
     const [allTracks, setAllTracks]                   = useState([]);          // full list for footer totals + drag data
     const [pagination, setPagination]                 = useState({ page: 1, limit: TRACKS_PER_PAGE, total: 0, totalPages: 1 });
@@ -58,19 +59,31 @@ export function usePlaylist() {
     // Load playlist names
 
     useEffect(() => {
+        let active = true;
+
         (async () => {
             try {
                 const data = await api.getPlaylists();
+                if (!active) return;
+
                 setPlaylistNames(data.playlists);
-                if (!data.playlists.includes(currentPlaylist)) {
-                    setCurrentPlaylist(data.playlists[0] ?? "CoolPlaylist");
-                }
-            } catch {
+                setCurrentPlaylist((current) =>
+                    current && data.playlists.includes(current) ? current : data.playlists[0] ?? null
+                );
+            } catch (err) {
+                if (!active) return;
+
                 setPlaylistNames(SEED_PLAYLISTS);
-                setApiError("    Backend unreachable — showing test data");
+                setCurrentPlaylist("CoolPlaylist");
+                setApiError(err.message);
+            } finally {
+                if (active) setPlaylistsReady(true);
             }
         })();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+
+        return () => {
+            active = false;
+        };
     }, []);
 
 
@@ -84,19 +97,20 @@ export function usePlaylist() {
 
             const all = await api.getTracks(playlistName, { page: 1, limit: 100, search: "" });
             setAllTracks(mergeAssets(all.data));
-        } catch {
-            setTracks(mergeAssets(SEED_TRACKS));
-            setAllTracks(mergeAssets(SEED_TRACKS));
-            setPagination({ page: 1, limit: TRACKS_PER_PAGE, total: SEED_TRACKS.length, totalPages: 1 });
-            setApiError("     Backend unreachable — showing seed data");
+        } catch (err) {
+            setTracks([]);
+            setAllTracks([]);
+            setPagination({ page: 1, limit: TRACKS_PER_PAGE, total: 0, totalPages: 1 });
+            setApiError(err.message);
         } finally {
             setLoading(false);
         }
     }, [mergeAssets]);
 
     useEffect(() => {
+        if (!playlistsReady || !currentPlaylist) return;
         fetchTracks(currentPlaylist, currentPage, search);
-    }, [currentPlaylist, currentPage, search, fetchTracks]);
+    }, [playlistsReady, currentPlaylist, currentPage, search, fetchTracks]);
 
     // Playlist management
 

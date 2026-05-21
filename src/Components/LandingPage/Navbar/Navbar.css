@@ -34,6 +34,28 @@
     min-width: 0;
 }
 
+.logo {
+    width: 56px;
+    height: 56px;
+    flex: 0 0 56px;
+    object-fit: contain;
+    display: block;
+}
+
+.logo-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #A7A7A7;
+    border-radius: 4px;
+    color: white;
+    font-family: 'Tomorrow', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0;
+    background: #101010;
+}
+
 .navbar-right {
     display: flex;
     gap: 2em;
@@ -113,6 +135,12 @@ a {
         margin-left: 12px;
         font-size: 30px;
     }
+
+    .logo {
+        width: 48px;
+        height: 48px;
+        flex-basis: 48px;
+    }
 }
 
 @media (max-width: 640px) {
@@ -122,6 +150,12 @@ a {
 
     .navbar-left {
         width: 100%;
+    }
+
+    .logo {
+        width: 42px;
+        height: 42px;
+        flex-basis: 42px;
     }
 
     .navbar-right {

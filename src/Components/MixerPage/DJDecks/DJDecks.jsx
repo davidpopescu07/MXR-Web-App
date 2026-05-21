@@ -112,21 +112,32 @@ function Knob({label, value, onChange, size = 36, min = 0, max = 1}) {
     const startVal = useRef(value);
     const angle = -135 + ((value - min) / (max - min)) * 270;
 
-    const onMouseDown = (e) => {
-        e.preventDefault();
-        startY.current = e.clientY;
+    const updateFromClientY = useCallback((clientY) => {
+        const delta = (startY.current - clientY) / 120;
+        const next = Math.max(min, Math.min(max, startVal.current + delta * (max - min)));
+        onChange(next);
+    }, [max, min, onChange]);
+
+    const startDrag = (clientY) => {
+        startY.current = clientY;
         startVal.current = value;
-        const onMove = (me) => {
-            const delta = (startY.current - me.clientY) / 120;
-            const next = Math.max(min, Math.min(max, startVal.current + delta * (max - min)));
-            onChange(next);
-        };
-        const onUp = () => {
-            window.removeEventListener("mousemove", onMove);
-            window.removeEventListener("mouseup", onUp);
-        };
-        window.addEventListener("mousemove", onMove);
-        window.addEventListener("mouseup", onUp);
+    };
+
+    const onPointerDown = (e) => {
+        e.preventDefault();
+        e.currentTarget.setPointerCapture?.(e.pointerId);
+        startDrag(e.clientY);
+    };
+
+    const onPointerMove = (e) => {
+        if (!e.currentTarget.hasPointerCapture?.(e.pointerId)) return;
+        e.preventDefault();
+        updateFromClientY(e.clientY);
+    };
+
+    const onPointerUp = (e) => {
+        e.preventDefault();
+        e.currentTarget.releasePointerCapture?.(e.pointerId);
     };
 
     const r = size / 2 - 4;
@@ -137,8 +148,18 @@ function Knob({label, value, onChange, size = 36, min = 0, max = 1}) {
     const y2 = cy - r * 0.65 * Math.cos(rad);
 
     return (
-        <div style={{display: "flex", flexDirection: "column", alignItems: "center", gap: 3}}>
-            <svg className="knob-svg" width={size} height={size} onMouseDown={onMouseDown}>
+        <div
+            className="eq-knob-control"
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+        >
+            <svg
+                className="knob-svg"
+                width={size}
+                height={size}
+            >
                 <circle cx={cx} cy={cy} r={r} fill="none" stroke="#3a3a3a" strokeWidth={2}/>
                 <line x1={cx} y1={cy} x2={x2} y2={y2} stroke="lightgray" strokeWidth={2} strokeLinecap="round"/>
                 <circle cx={cx} cy={cy} r={3} fill="var(--bg-raised)" stroke="#3a3a3a" strokeWidth={1}/>
@@ -152,25 +173,40 @@ function Knob({label, value, onChange, size = 36, min = 0, max = 1}) {
 function Crossfader({value, onChange}) {
     const trackRef = useRef(null);
 
-    const onMouseDown = (e) => {
-        e.preventDefault();
+    const updateFromClientX = useCallback((clientX) => {
         const rect = trackRef.current.getBoundingClientRect();
-        const move = (me) => {
-            const pct = Math.max(0, Math.min(1, (me.clientX - rect.left) / rect.width));
-            onChange(pct);
-        };
-        const up = () => {
-            window.removeEventListener("mousemove", move);
-            window.removeEventListener("mouseup", up);
-        };
-        window.addEventListener("mousemove", move);
-        window.addEventListener("mouseup", up);
+        const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+        onChange(pct);
+    }, [onChange]);
+
+    const onPointerDown = (e) => {
+        e.preventDefault();
+        e.currentTarget.setPointerCapture?.(e.pointerId);
+        updateFromClientX(e.clientX);
+    };
+
+    const onPointerMove = (e) => {
+        if (!e.currentTarget.hasPointerCapture?.(e.pointerId)) return;
+        e.preventDefault();
+        updateFromClientX(e.clientX);
+    };
+
+    const onPointerUp = (e) => {
+        e.preventDefault();
+        e.currentTarget.releasePointerCapture?.(e.pointerId);
     };
 
     return (
         <>
             <span className="cf-label">CROSSFADER</span>
-            <div ref={trackRef} className="cf-track" onMouseDown={onMouseDown}>
+            <div
+                ref={trackRef}
+                className="cf-track"
+                onPointerDown={onPointerDown}
+                onPointerMove={onPointerMove}
+                onPointerUp={onPointerUp}
+                onPointerCancel={onPointerUp}
+            >
                 <div className="cf-thumb" style={{left: `${value * 100}%`}}/>
             </div>
         </>

@@ -2,10 +2,15 @@ require("dotenv").config();
 const bcrypt = require("bcrypt");
 const { PrismaClient } = require("@prisma/client");
 const { PrismaPg } = require("@prisma/adapter-pg");
+const { ensureStarterPlaylist } = require("./starterPlaylist");
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 const INVALID_ADMIN_PASSWORDS = new Set(["hashed_not_used_here", "hashed_not_used_in_tests"]);
+
+async function resolveUserId(userId) {
+    return userId ?? getDefaultUserId();
+}
 
 async function getDefaultUserId() {
     const existingUser = await prisma.user.findUnique({
@@ -37,9 +42,11 @@ async function getDefaultUserId() {
     return existingUser.id;
 }
 
-async function getPlaylistNames() {
-    const userId = await getDefaultUserId();
-    const playlists = await prisma.playlist.findMany({
+async function getPlaylistNames(userId) {
+    userId = await resolveUserId(userId);
+    await ensureStarterPlaylist(prisma, userId);
+
+    let playlists = await prisma.playlist.findMany({
         where: { userId },
         select: { name: true },
         orderBy: { createdAt: "asc" },
@@ -48,8 +55,10 @@ async function getPlaylistNames() {
     return playlists.map((p) => p.name);
 }
 
-async function playlistExists(name) {
-    const userId = await getDefaultUserId();
+async function playlistExists(name, userId) {
+    userId = await resolveUserId(userId);
+    await ensureStarterPlaylist(prisma, userId);
+
     const playlist = await prisma.playlist.findUnique({
         where: { userId_name: { userId, name } },
     });
@@ -57,16 +66,18 @@ async function playlistExists(name) {
     return playlist !== null;
 }
 
-async function getPlaylist(name) {
-    const userId = await getDefaultUserId();
+async function getPlaylist(name, userId) {
+    userId = await resolveUserId(userId);
+    await ensureStarterPlaylist(prisma, userId);
+
     return prisma.playlist.findUnique({
         where: { userId_name: { userId, name } },
         include: { tracks: true },
     });
 }
 
-async function createPlaylist(name) {
-    const userId = await getDefaultUserId();
+async function createPlaylist(name, userId) {
+    userId = await resolveUserId(userId);
     const playlist = await prisma.playlist.create({
         data: { name, userId },
         include: { tracks: true },
@@ -75,15 +86,15 @@ async function createPlaylist(name) {
     return { name: playlist.name, tracks: playlist.tracks };
 }
 
-async function deletePlaylist(name) {
-    const userId = await getDefaultUserId();
+async function deletePlaylist(name, userId) {
+    userId = await resolveUserId(userId);
     await prisma.playlist.delete({
         where: { userId_name: { userId, name } },
     });
 }
 
-async function renamePlaylist(oldName, newName) {
-    const userId = await getDefaultUserId();
+async function renamePlaylist(oldName, newName, userId) {
+    userId = await resolveUserId(userId);
     const playlist = await prisma.playlist.update({
         where: { userId_name: { userId, name: oldName } },
         data: { name: newName },
@@ -93,8 +104,10 @@ async function renamePlaylist(oldName, newName) {
     return { name: playlist.name, tracks: playlist.tracks };
 }
 
-async function getTracks(playlistName) {
-    const userId = await getDefaultUserId();
+async function getTracks(playlistName, userId) {
+    userId = await resolveUserId(userId);
+    await ensureStarterPlaylist(prisma, userId);
+
     const playlist = await prisma.playlist.findUnique({
         where: { userId_name: { userId, name: playlistName } },
         include: { tracks: { orderBy: { createdAt: "asc" } } },
@@ -103,8 +116,8 @@ async function getTracks(playlistName) {
     return playlist ? playlist.tracks : null;
 }
 
-async function getTrack(playlistName, id) {
-    const userId = await getDefaultUserId();
+async function getTrack(playlistName, id, userId) {
+    userId = await resolveUserId(userId);
     const playlist = await prisma.playlist.findUnique({
         where: { userId_name: { userId, name: playlistName } },
     });
@@ -113,8 +126,8 @@ async function getTrack(playlistName, id) {
     return prisma.track.findFirst({ where: { id, playlistId: playlist.id } });
 }
 
-async function addTrack(playlistName, trackData) {
-    const userId = await getDefaultUserId();
+async function addTrack(playlistName, trackData, userId) {
+    userId = await resolveUserId(userId);
     const playlist = await prisma.playlist.findUnique({
         where: { userId_name: { userId, name: playlistName } },
     });
@@ -135,8 +148,8 @@ async function addTrack(playlistName, trackData) {
     });
 }
 
-async function updateTrack(playlistName, id, updates) {
-    const userId = await getDefaultUserId();
+async function updateTrack(playlistName, id, updates, userId) {
+    userId = await resolveUserId(userId);
     const playlist = await prisma.playlist.findUnique({
         where: { userId_name: { userId, name: playlistName } },
     });
@@ -145,11 +158,14 @@ async function updateTrack(playlistName, id, updates) {
     const { artwork, ...safeUpdates } = updates;
     if (artwork !== undefined) safeUpdates.artworkPath = artwork;
 
+    const track = await prisma.track.findFirst({ where: { id, playlistId: playlist.id } });
+    if (!track) return null;
+
     return prisma.track.update({ where: { id }, data: safeUpdates });
 }
 
-async function deleteTrack(playlistName, id) {
-    const userId = await getDefaultUserId();
+async function deleteTrack(playlistName, id, userId) {
+    userId = await resolveUserId(userId);
     const playlist = await prisma.playlist.findUnique({
         where: { userId_name: { userId, name: playlistName } },
     });

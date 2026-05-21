@@ -18,8 +18,8 @@ function serializeTrack(req, track) {
     };
 }
 
-async function playlistGuard(res, name) {
-    if (!await store.playlistExists(name)) {
+async function playlistGuard(req, res, name) {
+    if (!await store.playlistExists(name, req.session.userId)) {
         res.status(404).json({ errors: [`Playlist "${name}" not found`] });
         return false;
     }
@@ -27,7 +27,7 @@ async function playlistGuard(res, name) {
 }
 
 async function listTracks(req, res) {
-    if (!await playlistGuard(res, req.params.name)) return;
+    if (!await playlistGuard(req, res, req.params.name)) return;
 
     const pagination = parsePagination(req.query);
     if (!pagination.valid) return res.status(400).json({ errors: pagination.errors });
@@ -35,7 +35,7 @@ async function listTracks(req, res) {
     const { page, limit } = pagination;
     const search = (req.query.search ?? "").toLowerCase().trim();
 
-    let tracks = await store.getTracks(req.params.name);
+    let tracks = await store.getTracks(req.params.name, req.session.userId);
 
     if (search) {
         tracks = tracks.filter(
@@ -58,16 +58,16 @@ async function listTracks(req, res) {
 }
 
 async function getTrack(req, res) {
-    if (!await playlistGuard(res, req.params.name)) return;
+    if (!await playlistGuard(req, res, req.params.name)) return;
 
-    const track = await store.getTrack(req.params.name, req.params.id);
+    const track = await store.getTrack(req.params.name, req.params.id, req.session.userId);
     if (!track) return res.status(404).json({ errors: [`Track "${req.params.id}" not found`] });
 
     return res.status(200).json(serializeTrack(req, track));
 }
 
 async function createTrack(req, res) {
-    if (!await playlistGuard(res, req.params.name)) return;
+    if (!await playlistGuard(req, res, req.params.name)) return;
 
     const validation = await validateCreateTrack(req.body);
     if (!validation.valid) return res.status(400).json({ errors: validation.errors });
@@ -84,15 +84,15 @@ async function createTrack(req, res) {
         rating: Number(rating),
         artworkPath: artworkFile ? `/uploads/artwork/${artworkFile.filename}` : null,
         audioPath: audioFile ? `/uploads/audio/${audioFile.filename}` : null,
-    });
+    }, req.session.userId);
 
     return res.status(201).json(serializeTrack(req, track));
 }
 
 async function updateTrack(req, res) {
-    if (!await playlistGuard(res, req.params.name)) return;
+    if (!await playlistGuard(req, res, req.params.name)) return;
 
-    const existing = await store.getTrack(req.params.name, req.params.id);
+    const existing = await store.getTrack(req.params.name, req.params.id, req.session.userId);
     if (!existing) return res.status(404).json({ errors: [`Track "${req.params.id}" not found`] });
 
     const validation = await validateUpdateTrack(req.body);
@@ -111,23 +111,23 @@ async function updateTrack(req, res) {
         }
     }
 
-    const updated = await store.updateTrack(req.params.name, req.params.id, updates);
+    const updated = await store.updateTrack(req.params.name, req.params.id, updates, req.session.userId);
     return res.status(200).json(serializeTrack(req, updated));
 }
 
 async function deleteTrack(req, res) {
-    if (!await playlistGuard(res, req.params.name)) return;
+    if (!await playlistGuard(req, res, req.params.name)) return;
 
-    const deleted = await store.deleteTrack(req.params.name, req.params.id);
+    const deleted = await store.deleteTrack(req.params.name, req.params.id, req.session.userId);
     if (!deleted) return res.status(404).json({ errors: [`Track "${req.params.id}" not found`] });
 
     return res.status(204).send();
 }
 
 async function getStats(req, res) {
-    if (!await playlistGuard(res, req.params.name)) return;
+    if (!await playlistGuard(req, res, req.params.name)) return;
 
-    const tracks = await store.getTracks(req.params.name);
+    const tracks = await store.getTracks(req.params.name, req.session.userId);
 
     let totalSeconds = 0;
     for (const t of tracks) {
