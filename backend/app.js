@@ -20,6 +20,7 @@ if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 app.use(cors({ origin: true, credentials: true }));
 app.use("/uploads", express.static(uploadsDir));
 app.use(express.json());
+
 app.use(session({
     secret: process.env.SESSION_SECRET || "mxr-dev-session-secret",
     resave: false,
