@@ -24,6 +24,8 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "start:backend": "npm --prefix backend start",
+    "render-build:backend": "npm --prefix backend install && npm --prefix backend run render-build",
     "build": "react-scripts build",
     "eject": "react-scripts eject",
     "test": "vitest",

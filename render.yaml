@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: mxr-backend
+    runtime: node
+    buildCommand: npm run render-build:backend
+    startCommand: npm run start:backend
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: HTTPS_ENABLED
+        value: false
+      - key: COOKIE_SECURE
+        value: true
+      - key: SESSION_MAX_AGE_MS
+        value: 900000
+      - key: AUTH_RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: AUTH_RATE_LIMIT_MAX
+        value: 20
+      - key: DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: AUTH_TOKEN_SECRET
+        sync: false
+      - key: CLIENT_ORIGIN
+        sync: false
