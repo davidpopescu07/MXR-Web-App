@@ -27,15 +27,21 @@ const normalizeOrigin = (origin) => {
     }
 };
 
-const allowedOrigins = (process.env.CLIENT_ORIGIN || "")
-    .split(",")
+const defaultAllowedOrigins = [
+    "https://mxr-web-app.vercel.app",
+];
+
+const allowedOrigins = [
+    ...defaultAllowedOrigins,
+    ...(process.env.CLIENT_ORIGIN || "").split(","),
+]
     .map((origin) => origin.trim())
     .map(normalizeOrigin)
     .filter(Boolean);
 
 app.set("trust proxy", 1);
 
-app.use(cors({
+const corsOptions = {
     origin(origin, callback) {
         const requestOrigin = origin ? normalizeOrigin(origin) : origin;
 
@@ -46,7 +52,10 @@ app.use(cors({
         return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
-}));
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 app.use("/uploads", express.static(uploadsDir));
 app.use(express.json());
 
