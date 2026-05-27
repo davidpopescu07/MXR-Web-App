@@ -11,13 +11,13 @@ function getSessionMaxAgeMs() {
 }
 
 function getCookieOptions() {
-    const isHttps = process.env.HTTPS_ENABLED === "true";
+    const isSecure = process.env.COOKIE_SECURE === "true" || process.env.HTTPS_ENABLED === "true";
 
     return {
         httpOnly: true,
         maxAge: getSessionMaxAgeMs(),
-        sameSite: isHttps ? "none" : "lax",
-        secure: isHttps,
+        sameSite: isSecure ? "none" : "lax",
+        secure: isSecure,
     };
 }
 

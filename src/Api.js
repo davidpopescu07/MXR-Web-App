@@ -4,12 +4,18 @@ const getApiBase = () => {
         ? `${window.location.protocol}//${window.location.hostname}:3001/api`
         : "http://localhost:3001/api";
 
+    const isLocalHost = (hostname) => ["localhost", "127.0.0.1", "0.0.0.0"].includes(hostname);
+    const isPrivateLanHost = (hostname) =>
+        /^10\./.test(hostname) ||
+        /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname) ||
+        /^192\.168\./.test(hostname);
+
     if (configuredBase) {
         try {
             const configuredUrl = new URL(configuredBase);
             const runtimeHost = typeof window !== "undefined" ? window.location.hostname : "";
-            const configuredIsLocal = ["localhost", "127.0.0.1", "0.0.0.0"].includes(configuredUrl.hostname);
-            const pageIsLan = runtimeHost && !["localhost", "127.0.0.1"].includes(runtimeHost);
+            const configuredIsLocal = isLocalHost(configuredUrl.hostname);
+            const pageIsLan = isPrivateLanHost(runtimeHost);
 
             if (configuredIsLocal && pageIsLan) return runtimeBase;
             if (pageIsLan && configuredUrl.hostname !== runtimeHost) return runtimeBase;

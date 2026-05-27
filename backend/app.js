@@ -40,10 +40,11 @@ app.use("/uploads", express.static(uploadsDir));
 app.use(express.json());
 
 const isHttps = process.env.HTTPS_ENABLED === "true";
+const cookieSecure = process.env.COOKIE_SECURE === "true" || isHttps;
 const sessionMaxAgeMs = Number(process.env.SESSION_MAX_AGE_MS || 15 * 60 * 1000);
 
-if (isHttps && (!process.env.SESSION_SECRET || !process.env.AUTH_TOKEN_SECRET)) {
-    throw new Error("HTTPS_ENABLED=true requires SESSION_SECRET and AUTH_TOKEN_SECRET");
+if ((isHttps || cookieSecure) && (!process.env.SESSION_SECRET || !process.env.AUTH_TOKEN_SECRET)) {
+    throw new Error("Secure auth requires SESSION_SECRET and AUTH_TOKEN_SECRET");
 }
 
 const sessionStore = process.env.DATABASE_URL
@@ -64,8 +65,8 @@ app.use(session({
     cookie: {
         httpOnly: true,
         maxAge: sessionMaxAgeMs,
-        sameSite: isHttps ? "none" : "lax",
-        secure: isHttps,
+        sameSite: cookieSecure ? "none" : "lax",
+        secure: cookieSecure,
     },
 }));
 
