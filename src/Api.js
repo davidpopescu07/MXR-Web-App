@@ -1,5 +1,23 @@
 const getApiBase = () => {
     const configuredBase = process.env.REACT_APP_API_URL?.trim();
+    const normalizeApiBase = (base) => {
+        const cleaned = base.replace(/\/+$/, "");
+
+        try {
+            const url = new URL(cleaned);
+            const path = url.pathname.replace(/\/+$/, "");
+
+            if (!path || path === "/") {
+                url.pathname = "/api";
+                return url.toString().replace(/\/+$/, "");
+            }
+
+            return path.endsWith("/api") ? cleaned : `${cleaned}/api`;
+        } catch {
+            return cleaned.endsWith("/api") ? cleaned : `${cleaned}/api`;
+        }
+    };
+
     const runtimeBase = typeof window !== "undefined" && window.location.hostname
         ? `${window.location.protocol}//${window.location.hostname}:3001/api`
         : "http://localhost:3001/api";
@@ -20,10 +38,10 @@ const getApiBase = () => {
             if (configuredIsLocal && pageIsLan) return runtimeBase;
             if (pageIsLan && configuredUrl.hostname !== runtimeHost) return runtimeBase;
         } catch {
-            return configuredBase.replace(/\/$/, "");
+            return normalizeApiBase(configuredBase);
         }
 
-        return configuredBase.replace(/\/$/, "");
+        return normalizeApiBase(configuredBase);
     }
 
     return runtimeBase;

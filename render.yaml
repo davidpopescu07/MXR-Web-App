@@ -26,5 +26,4 @@ services:
       - key: AUTH_TOKEN_SECRET
         sync: false
       - key: CLIENT_ORIGIN
-        sync: false
-
+        value: https://mxr-web-app.vercel.app

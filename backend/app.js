@@ -19,16 +19,27 @@ const uploadsDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 // Global middleware
+const normalizeOrigin = (origin) => {
+    try {
+        return new URL(origin).origin;
+    } catch {
+        return origin.replace(/\/+$/, "");
+    }
+};
+
 const allowedOrigins = (process.env.CLIENT_ORIGIN || "")
     .split(",")
     .map((origin) => origin.trim())
+    .map(normalizeOrigin)
     .filter(Boolean);
 
 app.set("trust proxy", 1);
 
 app.use(cors({
     origin(origin, callback) {
-        if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+        const requestOrigin = origin ? normalizeOrigin(origin) : origin;
+
+        if (!requestOrigin || allowedOrigins.length === 0 || allowedOrigins.includes(requestOrigin)) {
             return callback(null, true);
         }
 
