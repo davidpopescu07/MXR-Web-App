@@ -1,0 +1,53 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        Int        @id @default(autoincrement())
+  username  String     @unique @db.VarChar(50)
+  email     String     @unique @db.VarChar(255)
+  password  String     @db.VarChar(255)
+  role      Role       @default(USER)
+  createdAt DateTime   @default(now())
+  playlists Playlist[]
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model Playlist {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  createdAt DateTime @default(now())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tracks    Track[]
+
+  @@unique([userId, name])
+}
+
+model Track {
+  id          String   @id @default(uuid())
+  title       String   @db.VarChar(255)
+  artist      String   @db.VarChar(255)
+  album       String   @db.VarChar(255)
+  bpm         Int      @default(0)
+  length      String   @db.VarChar(10)
+  rating      Int      @default(0)
+  artworkPath String?  @db.VarChar(500)
+  audioPath   String?  @db.VarChar(500)
+  createdAt   DateTime @default(now())
+  playlistId  Int
+  playlist    Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+}
